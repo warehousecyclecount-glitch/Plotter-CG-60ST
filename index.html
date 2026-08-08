@@ -42,13 +42,14 @@
         <div class="editor-scroll">
           <section class="field-section">
             <label class="field full">ข้อความ
-              <input id="jobText" class="text-input" type="text" value="WAREHOUSE" placeholder="ข้อความที่ต้องการตัด">
+              <textarea id="jobText" class="text-input" rows="3" placeholder="ข้อความที่ต้องการตัด" spellcheck="false">WAREHOUSE</textarea>
             </label>
+            <small class="field-help">กด Enter เพื่อขึ้นบรรทัดใหม่ หรือดับเบิลคลิกข้อความบนกระดาษเพื่อแก้ตรงตำแหน่งนั้น</small>
             <div class="grid two">
               <label class="field">กว้าง
                 <div class="input-unit"><input id="textWidth" type="number" min="1" step="0.1"><span data-unit-label>mm</span></div>
               </label>
-              <label class="field">สูง
+              <label class="field">สูงรวม
                 <div class="input-unit"><input id="textHeight" type="number" min="1" step="0.1"><span data-unit-label>mm</span></div>
               </label>
             </div>
@@ -108,6 +109,21 @@
       </aside>
 
       <section class="canvas-column">
+        <div class="edit-toolbar" aria-label="เครื่องมือแก้ไข">
+          <div class="edit-group">
+            <button id="undoBtn" type="button" title="ย้อนกลับ (Ctrl+Z)">↶ <span>Undo</span></button>
+            <button id="redoBtn" type="button" title="ทำซ้ำ (Ctrl+Y / Ctrl+Shift+Z)">↷ <span>Redo</span></button>
+          </div>
+          <div class="edit-separator"></div>
+          <div class="edit-group">
+            <button id="copyBtn" type="button" title="คัดลอก (Ctrl+C)">⧉ <span>Copy</span></button>
+            <button id="pasteBtn" type="button" title="วาง (Ctrl+V)">▣ <span>Paste</span></button>
+            <button id="boldBtn" type="button" title="ตัวหนา (Ctrl+B)"><b>B</b></button>
+            <button id="deleteBtn" type="button" class="danger-tool" title="ลบ (Delete / Backspace)">⌫ <span>Delete</span></button>
+          </div>
+          <span class="shortcut-hint">ดับเบิลคลิกเพื่อแก้ข้อความ · Enter ขึ้นบรรทัดใหม่</span>
+        </div>
+
         <div class="canvas-toolbar">
           <div class="canvas-status">
             <span id="statusBadge" class="status ok">พร้อม</span>
@@ -122,8 +138,8 @@
           <svg id="previewSvg" xmlns="http://www.w3.org/2000/svg" aria-label="Preview กระดาษและชิ้นงาน"></svg>
         </div>
         <div class="canvas-footer">
-          <span>ลากข้อความหรือกรอบเพื่อย้าย</span>
-          <span>ลากจุดมุมเพื่อปรับขนาด</span>
+          <span>คลิกพื้นที่ว่างเพื่อยกเลิกการเลือก</span>
+          <span>ลากข้อความหรือกรอบเพื่อย้าย · ลากจุดมุมเพื่อปรับขนาด</span>
           <span id="paperSummary">—</span>
         </div>
       </section>
