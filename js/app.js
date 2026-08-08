@@ -74,6 +74,7 @@
     const i = readInputs();
     const metrics = measureFont(i.text || 'M', i.font, i.weight);
     let textW, textH;
+    let autoMissing = false;
 
     if (i.targetW && i.targetH) {
       textW = i.targetW;
@@ -90,8 +91,9 @@
       textH = Math.min(availH, availW / metrics.ratio);
       textW = textH * metrics.ratio;
     } else {
-      textH = 50;
-      textW = textH * metrics.ratio;
+      autoMissing = true;
+      textH = 1;
+      textW = Math.max(1, metrics.ratio);
     }
 
     let frameW = 0, frameH = 0;
@@ -107,6 +109,7 @@
     const warnings = [];
 
     if (!i.text && !i.frameOn) warnings.push('ยังไม่มีข้อความหรือกรอบสำหรับ Export');
+    if (i.text && autoMissing) warnings.push('กรอกขนาดตัวอักษรอย่างน้อยกว้างหรือสูง หรือกรอกขนาดกรอบทั้งกว้างและยาว');
     if (i.frameOn && !i.text && (!i.frameW || !i.frameH)) warnings.push('ถ้าต้องการกรอบอย่างเดียว ให้กรอกขนาดกรอบทั้งกว้างและยาว');
     if (i.frameOn && i.frameW && i.frameW < textW + i.padX * 2 - .01) warnings.push('กรอบแคบกว่าตัวอักษรและระยะห่างที่กำหนด');
     if (i.frameOn && i.frameH && i.frameH < textH + i.padY * 2 - .01) warnings.push('กรอบเตี้ยกว่าตัวอักษรและระยะห่างที่กำหนด');
@@ -121,8 +124,11 @@
     const maxY = Math.max(0, i.paperH - objectH);
     if (state.xMm < 0 || state.yMm < 0 || state.xMm > maxX + .01 || state.yMm > maxY + .01) warnings.push('ชิ้นงานอยู่นอกกระดาษบางส่วน');
     if (objectW > i.paperW + .01 || objectH > i.paperH + .01) warnings.push('ชิ้นงานใหญ่กว่ากระดาษ');
+    const safeW = Math.min(CUT_WIDTH_MM, i.paperW);
+    const safeX = (i.paperW - safeW) / 2;
+    if (state.xMm < safeX - .01 || state.xMm + objectW > safeX + safeW + .01) warnings.push(`ชิ้นงานเกินพื้นที่ตัด ${round(safeW,1)} mm ของ CG-60ST`);
 
-    state.current = { i, metrics, textW, textH, frameW, frameH, objectW, objectH, textOffsetX, textOffsetY, warnings };
+    state.current = { i, metrics, textW, textH, frameW, frameH, objectW, objectH, textOffsetX, textOffsetY, warnings, autoMissing };
     return state.current;
   }
 
@@ -148,13 +154,13 @@
     els.posX.value = round(fromMm(state.xMm), state.unit === 'cm' ? 2 : 1);
     els.posY.value = round(fromMm(state.yMm), state.unit === 'cm' ? 2 : 1);
     els.paperSummary.textContent = `${displayDim(job.i.paperW)} × ${displayDim(job.i.paperH)}`;
-    els.textSummary.textContent = job.i.text ? `${displayDim(job.textW)} × ${displayDim(job.textH)}` : 'ไม่มีข้อความ';
+    els.textSummary.textContent = job.i.text ? (job.autoMissing ? 'ยังไม่กำหนดขนาด' : `${displayDim(job.textW)} × ${displayDim(job.textH)}`) : 'ไม่มีข้อความ';
     els.frameSummary.textContent = job.i.frameOn ? `${displayDim(job.frameW)} × ${displayDim(job.frameH)}` : 'ไม่ใช้';
     els.warning.classList.toggle('hidden', !job.warnings.length);
     els.warning.innerHTML = job.warnings.map(w => `• ${esc(w)}`).join('<br>');
     els.status.textContent = job.warnings.length ? 'ตรวจสอบ' : 'พร้อม';
     els.status.className = `status${job.warnings.length ? ' warn' : ''}`;
-    els.exportBtn.disabled = !job.i.text && !job.i.frameOn;
+    els.exportBtn.disabled = (!job.i.text && !job.i.frameOn) || (job.i.text && job.autoMissing);
 
     if (!els.previewEnabled.checked) return;
 
