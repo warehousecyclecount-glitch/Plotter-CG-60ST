@@ -3,307 +3,198 @@
 
   const CUT_WIDTH_MM = 586;
   const $ = id => document.getElementById(id);
-  const els = {
-    paperWidth: $('paperWidth'), paperHeight: $('paperHeight'), text: $('jobText'), textHeight: $('textHeight'), textWidth: $('textWidth'),
-    font: $('fontFamily'), weight: $('fontWeight'), frameEnabled: $('frameEnabled'), frameFields: $('frameFields'), frameWidth: $('frameWidth'),
-    frameHeight: $('frameHeight'), paddingX: $('paddingX'), paddingY: $('paddingY'), previewEnabled: $('previewEnabled'), dimensionsEnabled: $('dimensionsEnabled'),
-    safeAreaEnabled: $('safeAreaEnabled'), previewSvg: $('previewSvg'), previewOff: $('previewOff'), previewArea: $('previewArea'), posX: $('posX'), posY: $('posY'),
-    centerBtn: $('centerBtn'), fitPaperBtn: $('fitPaperBtn'), paperSummary: $('paperSummary'), textSummary: $('textSummary'), frameSummary: $('frameSummary'),
-    warning: $('warningBox'), status: $('statusBadge'), exportBtn: $('exportBtn'), issueSelect: $('issueSelect'), issueContent: $('issueContent'), toast: $('toast')
+  const E = {
+    paperW:$('paperWidth'), paperH:$('paperHeight'), text:$('jobText'), textW:$('textWidth'), textH:$('textHeight'), font:$('fontFamily'), weight:$('fontWeight'),
+    frameOn:$('frameEnabled'), frameFields:$('frameFields'), frameW:$('frameWidth'), frameH:$('frameHeight'), padX:$('paddingX'), padY:$('paddingY'),
+    previewOn:$('previewEnabled'), dimsOn:$('dimensionsEnabled'), safeOn:$('safeAreaEnabled'), svg:$('previewSvg'), previewOff:$('previewOff'),
+    posX:$('posX'), posY:$('posY'), center:$('centerBtn'), fitPaper:$('fitPaperBtn'), status:$('statusBadge'), warning:$('warningBox'),
+    paperSummary:$('paperSummary'), textSummary:$('textSummary'), frameSummary:$('frameSummary'), export:$('exportBtn'), issue:$('issueSelect'), issueContent:$('issueContent'), toast:$('toast')
   };
 
-  const state = { unit: 'mm', xMm: 0, yMm: 0, manualPosition: false, current: null };
-  const unitButtons = [...document.querySelectorAll('[data-unit]')];
-  const unitLabels = [...document.querySelectorAll('[data-unit-label]')];
-  const convertibleIds = ['paperWidth','paperHeight','textHeight','textWidth','frameWidth','frameHeight','paddingX','paddingY','posX','posY'];
-
-  const round = (v, d=1) => Math.round(v * 10 ** d) / 10 ** d;
-  const esc = s => String(s).replace(/[<>&'\"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c]));
-  const toMm = v => state.unit === 'cm' ? v * 10 : v;
-  const fromMm = v => state.unit === 'cm' ? v / 10 : v;
-  const displayNum = mm => state.unit === 'cm' ? round(mm / 10, 2) : round(mm, 1);
-  const displayDim = mm => `${displayNum(mm)} ${state.unit}`;
-  const numberOrNull = el => {
-    if (el.value.trim() === '') return null;
-    const v = Number(el.value);
-    return Number.isFinite(v) ? toMm(v) : null;
+  const state = {
+    unit:'mm', selected:'text', textBox:{x:50,y:70,w:200,h:50}, frameBox:{x:45,y:65,w:210,h:60}, framePlaced:false, textPlaced:false,
+    dragging:null, syncing:false
   };
-  const positive = (v, fallback) => Number.isFinite(v) && v > 0 ? v : fallback;
 
-  function showToast(message){
-    els.toast.textContent = message;
-    els.toast.classList.remove('hidden');
-    clearTimeout(showToast.t);
-    showToast.t = setTimeout(() => els.toast.classList.add('hidden'), 1800);
+  const round = (v,d=1) => Math.round(v*10**d)/10**d;
+  const esc = s => String(s).replace(/[<>&'\"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c]));
+  const val = (el, fallback=0) => { const n=Number(el.value); return Number.isFinite(n)?n:fallback; };
+  const toMm = v => state.unit==='cm' ? v*10 : v;
+  const fromMm = v => state.unit==='cm' ? v/10 : v;
+  const fmt = mm => `${round(fromMm(mm), state.unit==='cm'?2:1)} ${state.unit}`;
+  const setInputMm = (el, mm, digits=1) => { el.value = round(fromMm(mm), state.unit==='cm'?2:digits); };
+
+  function toast(msg){ E.toast.textContent=msg;E.toast.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>E.toast.classList.add('hidden'),1800); }
+
+  function measureRatio(text, font, weight){
+    const c=measureRatio.c||(measureRatio.c=document.createElement('canvas'));const ctx=c.getContext('2d');const px=240;ctx.font=`${weight} ${px}px ${JSON.stringify(font)}`;
+    const m=ctx.measureText(text||' ');const asc=m.actualBoundingBoxAscent||px*.75, desc=m.actualBoundingBoxDescent||px*.2;return {ratio:m.width/Math.max(asc+desc,1), ascRatio:asc/Math.max(asc+desc,1), px, visualPx:asc+desc};
   }
 
-  function measureFont(text, font, weight){
-    const canvas = measureFont.canvas || (measureFont.canvas = document.createElement('canvas'));
-    const ctx = canvas.getContext('2d');
-    const px = 240;
-    ctx.font = `${weight} ${px}px ${JSON.stringify(font)}`;
-    const m = ctx.measureText(text || 'M');
-    const ascent = m.actualBoundingBoxAscent || px * .75;
-    const descent = m.actualBoundingBoxDescent || px * .2;
-    const visualH = Math.max(1, ascent + descent);
-    return {
-      ratio: Math.max(.05, m.width / visualH),
-      ascentRatio: ascent / visualH,
-      fontScale: px / visualH
-    };
+  function readPaper(){ return {w:Math.max(1,toMm(val(E.paperW,600))),h:Math.max(1,toMm(val(E.paperH,300)))}; }
+
+  function syncTextSizeFromInputs(){
+    if(state.syncing) return;
+    const ratio=measureRatio(E.text.value,E.font.value,E.weight.value).ratio||1;
+    const wRaw=E.textW.value.trim(), hRaw=E.textH.value.trim();
+    let w=wRaw?toMm(val(E.textW,0)):0, h=hRaw?toMm(val(E.textH,0)):0;
+    if(w>0 && h>0){ state.textBox.w=w; state.textBox.h=h; }
+    else if(h>0){ state.textBox.h=h; state.textBox.w=Math.max(2,h*ratio); }
+    else if(w>0){ state.textBox.w=w; state.textBox.h=Math.max(2,w/Math.max(ratio,.01)); }
+    else { setInputMm(E.textH,state.textBox.h); }
+    if(!state.textPlaced){ const p=readPaper(); state.textBox.x=Math.max(0,(p.w-state.textBox.w)/2); state.textBox.y=Math.max(0,(p.h-state.textBox.h)/2); state.textPlaced=true; }
   }
 
-  function readInputs(){
-    return {
-      paperW: positive(numberOrNull(els.paperWidth), 600),
-      paperH: positive(numberOrNull(els.paperHeight), 300),
-      text: els.text.value.trim(),
-      targetH: numberOrNull(els.textHeight),
-      targetW: numberOrNull(els.textWidth),
-      font: els.font.value,
-      weight: els.weight.value,
-      frameOn: els.frameEnabled.checked,
-      frameW: numberOrNull(els.frameWidth),
-      frameH: numberOrNull(els.frameHeight),
-      padX: Math.max(0, numberOrNull(els.paddingX) ?? 5),
-      padY: Math.max(0, numberOrNull(els.paddingY) ?? 5)
-    };
+  function syncFrameFromInputs(recenter=false){
+    if(!E.frameOn.checked) return;
+    const padX=Math.max(0,toMm(val(E.padX,5))), padY=Math.max(0,toMm(val(E.padY,5)));
+    const wRaw=E.frameW.value.trim(), hRaw=E.frameH.value.trim();
+    const w=wRaw?Math.max(2,toMm(val(E.frameW,0))):state.textBox.w+padX*2;
+    const h=hRaw?Math.max(2,toMm(val(E.frameH,0))):state.textBox.h+padY*2;
+    state.frameBox.w=w; state.frameBox.h=h;
+    if(!state.framePlaced || recenter){ state.frameBox.x=state.textBox.x-(w-state.textBox.w)/2; state.frameBox.y=state.textBox.y-(h-state.textBox.h)/2; state.framePlaced=true; }
   }
 
-  function calculate(){
-    const i = readInputs();
-    const metrics = measureFont(i.text || 'M', i.font, i.weight);
-    let textW, textH;
-    let autoMissing = false;
+  function syncPositionInputs(){ state.syncing=true; setInputMm(E.posX,state.textBox.x); setInputMm(E.posY,state.textBox.y); state.syncing=false; }
 
-    if (i.targetW && i.targetH) {
-      textW = i.targetW;
-      textH = i.targetH;
-    } else if (i.targetH) {
-      textH = i.targetH;
-      textW = textH * metrics.ratio;
-    } else if (i.targetW) {
-      textW = i.targetW;
-      textH = textW / metrics.ratio;
-    } else if (i.frameOn && i.frameW && i.frameH && i.text) {
-      const availW = Math.max(1, i.frameW - i.padX * 2);
-      const availH = Math.max(1, i.frameH - i.padY * 2);
-      textH = Math.min(availH, availW / metrics.ratio);
-      textW = textH * metrics.ratio;
-    } else {
-      autoMissing = true;
-      textH = 1;
-      textW = Math.max(1, metrics.ratio);
-    }
-
-    let frameW = 0, frameH = 0;
-    if (i.frameOn) {
-      frameW = i.frameW || (textW + i.padX * 2);
-      frameH = i.frameH || (textH + i.padY * 2);
-    }
-
-    const objectW = i.frameOn ? frameW : textW;
-    const objectH = i.frameOn ? frameH : textH;
-    const textOffsetX = i.frameOn ? (frameW - textW) / 2 : 0;
-    const textOffsetY = i.frameOn ? (frameH - textH) / 2 : 0;
-    const warnings = [];
-
-    if (!i.text && !i.frameOn) warnings.push('ยังไม่มีข้อความหรือกรอบสำหรับ Export');
-    if (i.text && autoMissing) warnings.push('กรอกขนาดตัวอักษรอย่างน้อยกว้างหรือสูง หรือกรอกขนาดกรอบทั้งกว้างและยาว');
-    if (i.frameOn && !i.text && (!i.frameW || !i.frameH)) warnings.push('ถ้าต้องการกรอบอย่างเดียว ให้กรอกขนาดกรอบทั้งกว้างและยาว');
-    if (i.frameOn && i.frameW && i.frameW < textW + i.padX * 2 - .01) warnings.push('กรอบแคบกว่าตัวอักษรและระยะห่างที่กำหนด');
-    if (i.frameOn && i.frameH && i.frameH < textH + i.padY * 2 - .01) warnings.push('กรอบเตี้ยกว่าตัวอักษรและระยะห่างที่กำหนด');
-    if (i.paperW > 670) warnings.push('กระดาษกว้างเกิน 670 mm ซึ่งมากกว่าความกว้างม้วนที่รองรับของ CG-60ST');
-
-    if (!state.manualPosition) {
-      state.xMm = Math.max(0, (i.paperW - objectW) / 2);
-      state.yMm = Math.max(0, (i.paperH - objectH) / 2);
-    }
-
-    const maxX = Math.max(0, i.paperW - objectW);
-    const maxY = Math.max(0, i.paperH - objectH);
-    if (state.xMm < 0 || state.yMm < 0 || state.xMm > maxX + .01 || state.yMm > maxY + .01) warnings.push('ชิ้นงานอยู่นอกกระดาษบางส่วน');
-    if (objectW > i.paperW + .01 || objectH > i.paperH + .01) warnings.push('ชิ้นงานใหญ่กว่ากระดาษ');
-    const safeW = Math.min(CUT_WIDTH_MM, i.paperW);
-    const safeX = (i.paperW - safeW) / 2;
-    if (state.xMm < safeX - .01 || state.xMm + objectW > safeX + safeW + .01) warnings.push(`ชิ้นงานเกินพื้นที่ตัด ${round(safeW,1)} mm ของ CG-60ST`);
-
-    state.current = { i, metrics, textW, textH, frameW, frameH, objectW, objectH, textOffsetX, textOffsetY, warnings, autoMissing };
-    return state.current;
+  function labelGroup(x,y,text){
+    const width=Math.max(28,text.length*5.2+10), height=15;
+    return `<g class="dimension-label" transform="translate(${x-width/2} ${y-height/2})"><rect class="dimension-label-bg" width="${width}" height="${height}" rx="3"/><text class="dimension-text" x="${width/2}" y="${height/2+.3}">${esc(text)}</text></g>`;
   }
 
-  function textSvg(job, x, y){
-    if (!job.i.text) return '';
-    const fontSize = job.textH * job.metrics.fontScale;
-    const naturalW = job.textH * job.metrics.ratio;
-    const scaleX = naturalW > 0 ? job.textW / naturalW : 1;
-    const baseline = job.textH * job.metrics.ascentRatio;
-    return `<g transform="translate(${x} ${y}) scale(${scaleX} 1)"><text x="0" y="${baseline}" font-family="${esc(job.i.font)}" font-weight="${esc(job.i.weight)}" font-size="${fontSize}">${esc(job.i.text)}</text></g>`;
+  function dimensionHorizontal(x,y,w,label,offset=-13){
+    const yy=y+offset, tick=4;
+    return `<g><line class="dimension-line" x1="${x}" y1="${yy}" x2="${x+w}" y2="${yy}"/><line class="dimension-tick" x1="${x}" y1="${yy-tick}" x2="${x}" y2="${yy+tick}"/><line class="dimension-tick" x1="${x+w}" y1="${yy-tick}" x2="${x+w}" y2="${yy+tick}"/>${labelGroup(x+w/2,yy,label)}</g>`;
+  }
+  function dimensionVertical(x,y,h,label,offset=13){
+    const xx=x+offset,tick=4;
+    return `<g><line class="dimension-line" x1="${xx}" y1="${y}" x2="${xx}" y2="${y+h}"/><line class="dimension-tick" x1="${xx-tick}" y1="${y}" x2="${xx+tick}" y2="${y}"/><line class="dimension-tick" x1="${xx-tick}" y1="${y+h}" x2="${xx+tick}" y2="${y+h}"/>${labelGroup(xx,y+h/2,label)}</g>`;
   }
 
-  function dimensionLine(x1,y1,x2,y2,label,tx,ty,anchor='middle'){
-    return `<line class="dim-line" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/><line class="dim-line" x1="${x1}" y1="${y1-2}" x2="${x1}" y2="${y1+2}"/><line class="dim-line" x1="${x2}" y1="${y2-2}" x2="${x2}" y2="${y2+2}"/><text class="dim-text" x="${tx}" y="${ty}" text-anchor="${anchor}">${esc(label)}</text>`;
+  function handles(box,type){
+    const s=7, pts=[['nw',box.x,box.y],['ne',box.x+box.w,box.y],['sw',box.x,box.y+box.h],['se',box.x+box.w,box.y+box.h]];
+    return pts.map(([d,x,y])=>`<rect class="resize-handle ${type} ${d}" data-handle="${d}" data-target="${type}" x="${x-s/2}" y="${y-s/2}" width="${s}" height="${s}" rx="1.5"/>`).join('');
+  }
+
+  function textSvg(box, interactive=true){
+    const m=measureRatio(E.text.value,E.font.value,E.weight.value); const fs=box.h*(m.px/Math.max(m.visualPx,1)); const baseline=box.y+box.h*m.ascRatio;
+    const attrs=interactive?'class="job-text" data-object="text"':'';
+    return `<text ${attrs} x="${box.x}" y="${baseline}" font-family="${esc(E.font.value)}" font-weight="${esc(E.weight.value)}" font-size="${fs}" textLength="${box.w}" lengthAdjust="spacingAndGlyphs">${esc(E.text.value||' ')}</text>`;
   }
 
   function render(){
-    const job = calculate();
-    els.frameFields.classList.toggle('hidden', !job.i.frameOn);
-    els.previewSvg.classList.toggle('hidden', !els.previewEnabled.checked);
-    els.previewOff.classList.toggle('hidden', els.previewEnabled.checked);
+    syncTextSizeFromInputs();
+    syncFrameFromInputs(false);
+    E.frameFields.classList.toggle('hidden',!E.frameOn.checked);
+    E.previewOff.classList.toggle('hidden',E.previewOn.checked);
+    E.svg.classList.toggle('hidden',!E.previewOn.checked);
+    if(!E.previewOn.checked) return updateSummary();
 
-    els.posX.value = round(fromMm(state.xMm), state.unit === 'cm' ? 2 : 1);
-    els.posY.value = round(fromMm(state.yMm), state.unit === 'cm' ? 2 : 1);
-    els.paperSummary.textContent = `${displayDim(job.i.paperW)} × ${displayDim(job.i.paperH)}`;
-    els.textSummary.textContent = job.i.text ? (job.autoMissing ? 'ยังไม่กำหนดขนาด' : `${displayDim(job.textW)} × ${displayDim(job.textH)}`) : 'ไม่มีข้อความ';
-    els.frameSummary.textContent = job.i.frameOn ? `${displayDim(job.frameW)} × ${displayDim(job.frameH)}` : 'ไม่ใช้';
-    els.warning.classList.toggle('hidden', !job.warnings.length);
-    els.warning.innerHTML = job.warnings.map(w => `• ${esc(w)}`).join('<br>');
-    els.status.textContent = job.warnings.length ? 'ตรวจสอบ' : 'พร้อม';
-    els.status.className = `status${job.warnings.length ? ' warn' : ''}`;
-    els.exportBtn.disabled = (!job.i.text && !job.i.frameOn) || (job.i.text && job.autoMissing);
+    const p=readPaper(), pad=42;
+    E.svg.setAttribute('viewBox',`${-pad} ${-pad} ${p.w+pad*2} ${p.h+pad*2}`);
+    let s=`<rect class="paper-shape" x="0" y="0" width="${p.w}" height="${p.h}"/>`;
 
-    if (!els.previewEnabled.checked) return;
-
-    const margin = Math.max(14, Math.min(50, Math.max(job.i.paperW, job.i.paperH) * .08));
-    els.previewSvg.setAttribute('viewBox', `${-margin} ${-margin} ${job.i.paperW + margin * 2} ${job.i.paperH + margin * 2}`);
-    els.previewSvg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-    let svg = `<rect class="paper" x="0" y="0" width="${job.i.paperW}" height="${job.i.paperH}" rx="1"/>`;
-
-    if (els.safeAreaEnabled.checked) {
-      const safeW = Math.min(CUT_WIDTH_MM, job.i.paperW);
-      const safeX = (job.i.paperW - safeW) / 2;
-      svg += `<rect class="safe-area" x="${safeX}" y="0" width="${safeW}" height="${job.i.paperH}"/>`;
-      svg += `<text class="object-label" x="${safeX + 4}" y="10">พื้นที่ตัด ${round(safeW,1)} mm</text>`;
+    if(E.safeOn.checked && p.w>CUT_WIDTH_MM){
+      s+=`<rect class="safe-outside" x="${CUT_WIDTH_MM}" y="0" width="${Math.max(0,p.w-CUT_WIDTH_MM)}" height="${p.h}"/>`;
+      s+=`<line class="safe-edge" x1="${CUT_WIDTH_MM}" y1="0" x2="${CUT_WIDTH_MM}" y2="${p.h}"/><text class="safe-label" x="${CUT_WIDTH_MM-4}" y="12" text-anchor="end">ขอบเขตอ้างอิง 586 mm</text>`;
+    } else if(E.safeOn.checked){
+      s+=`<text class="safe-label" x="${p.w/2}" y="12" text-anchor="middle">กระดาษกว้างไม่เกิน 586 mm</text>`;
     }
 
-    const x = state.xMm, y = state.yMm;
-    svg += `<g class="job-group" data-draggable="true">`;
-    if (job.i.frameOn) svg += `<rect class="job-frame" x="${x}" y="${y}" width="${job.frameW}" height="${job.frameH}"/>`;
-    svg += textSvg(job, x + job.textOffsetX, y + job.textOffsetY);
-    svg += `<rect class="job-hit" x="${x}" y="${y}" width="${Math.max(job.objectW,3)}" height="${Math.max(job.objectH,3)}"/>`;
-    svg += `</g>`;
+    if(E.frameOn.checked){ s+=`<rect class="frame-shape" data-object="frame" x="${state.frameBox.x}" y="${state.frameBox.y}" width="${state.frameBox.w}" height="${state.frameBox.h}"/>`; }
+    s+=textSvg(state.textBox,true);
 
-    if (els.dimensionsEnabled.checked) {
-      const py = -margin * .35;
-      svg += dimensionLine(0,py,job.i.paperW,py,displayDim(job.i.paperW),job.i.paperW/2,py-3);
-      const vx = job.i.paperW + margin * .35;
-      svg += `<line class="dim-line" x1="${vx}" y1="0" x2="${vx}" y2="${job.i.paperH}"/><line class="dim-line" x1="${vx-2}" y1="0" x2="${vx+2}" y2="0"/><line class="dim-line" x1="${vx-2}" y1="${job.i.paperH}" x2="${vx+2}" y2="${job.i.paperH}"/><text class="dim-text" x="${vx+4}" y="${job.i.paperH/2}" transform="rotate(90 ${vx+4} ${job.i.paperH/2})" text-anchor="middle">${esc(displayDim(job.i.paperH))}</text>`;
-      const objTop = Math.max(8, y - 4);
-      svg += `<text class="object-label" x="${x + job.objectW/2}" y="${objTop}" text-anchor="middle">${esc(displayDim(job.objectW))} × ${esc(displayDim(job.objectH))}</text>`;
-      if (job.i.frameOn && job.i.text) svg += `<text class="object-label" x="${x + job.textOffsetX + job.textW/2}" y="${y + job.textOffsetY + job.textH + 9}" text-anchor="middle">Text ${esc(displayDim(job.textW))} × ${esc(displayDim(job.textH))}</text>`;
+    if(E.dimsOn.checked){
+      if(E.frameOn.checked){ s+=dimensionHorizontal(state.frameBox.x,state.frameBox.y,state.frameBox.w,fmt(state.frameBox.w),-18); s+=dimensionVertical(state.frameBox.x+state.frameBox.w,state.frameBox.y,state.frameBox.h,fmt(state.frameBox.h),18); }
+      s+=dimensionHorizontal(state.textBox.x,state.textBox.y+state.textBox.h,state.textBox.w,fmt(state.textBox.w),16);
+      s+=dimensionVertical(state.textBox.x,state.textBox.y,state.textBox.h,fmt(state.textBox.h),-18);
     }
 
-    els.previewSvg.innerHTML = svg;
-    bindDrag();
+    const box=state.selected==='frame'&&E.frameOn.checked?state.frameBox:state.textBox, type=state.selected==='frame'&&E.frameOn.checked?'frame':'text';
+    s+=`<rect class="selection-box ${type}" x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}"/>${handles(box,type)}`;
+    E.svg.innerHTML=s;
+    bindSvg(); syncPositionInputs(); updateSummary();
   }
 
-  function svgPoint(ev){
-    const pt = els.previewSvg.createSVGPoint();
-    pt.x = ev.clientX; pt.y = ev.clientY;
-    const ctm = els.previewSvg.getScreenCTM();
-    return ctm ? pt.matrixTransform(ctm.inverse()) : {x:0,y:0};
+  function svgPoint(ev){ const pt=E.svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;const m=E.svg.getScreenCTM();return m?pt.matrixTransform(m.inverse()):{x:0,y:0}; }
+
+  function bindSvg(){
+    E.svg.querySelectorAll('[data-object]').forEach(el=>el.addEventListener('pointerdown',e=>startMove(e,el.dataset.object)));
+    E.svg.querySelectorAll('[data-handle]').forEach(el=>el.addEventListener('pointerdown',e=>startResize(e,el.dataset.target,el.dataset.handle)));
   }
 
-  function bindDrag(){
-    const group = els.previewSvg.querySelector('[data-draggable]');
-    if (!group) return;
-    group.addEventListener('pointerdown', ev => {
-      ev.preventDefault();
-      const start = svgPoint(ev), ox = state.xMm, oy = state.yMm;
-      group.classList.add('dragging');
-      const move = e => {
-        const p = svgPoint(e);
-        state.xMm = round(ox + p.x - start.x, 2);
-        state.yMm = round(oy + p.y - start.y, 2);
-        state.manualPosition = true;
-        render();
-      };
-      const up = () => {
-        window.removeEventListener('pointermove', move);
-        window.removeEventListener('pointerup', up);
-      };
-      window.addEventListener('pointermove', move);
-      window.addEventListener('pointerup', up, {once:true});
-    });
+  function startMove(e,target){
+    e.preventDefault();e.stopPropagation();state.selected=target;const box=target==='frame'?state.frameBox:state.textBox;const start=svgPoint(e), orig={x:box.x,y:box.y};
+    const move=ev=>{const p=svgPoint(ev);box.x=orig.x+p.x-start.x;box.y=orig.y+p.y-start.y;if(target==='text')syncPositionInputs();renderWithoutInputSync();};
+    const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);render();};
+    window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true});renderWithoutInputSync();
   }
 
-  function setUnit(next){
-    if (next === state.unit) return;
-    const old = state.unit;
-    convertibleIds.forEach(id => {
-      const el = $(id);
-      if (!el || el.value.trim() === '') return;
-      const v = Number(el.value);
-      if (!Number.isFinite(v)) return;
-      el.value = old === 'mm' && next === 'cm' ? round(v / 10, 3) : round(v * 10, 2);
-    });
-    state.unit = next;
-    unitButtons.forEach(b => b.classList.toggle('active', b.dataset.unit === next));
-    unitLabels.forEach(x => x.textContent = next);
-    render();
+  function startResize(e,target,corner){
+    e.preventDefault();e.stopPropagation();state.selected=target;const box=target==='frame'?state.frameBox:state.textBox;const start=svgPoint(e);const o={x:box.x,y:box.y,w:box.w,h:box.h};const min=3;
+    const move=ev=>{const p=svgPoint(ev),dx=p.x-start.x,dy=p.y-start.y;let x=o.x,y=o.y,w=o.w,h=o.h;
+      if(corner.includes('e'))w=Math.max(min,o.w+dx); if(corner.includes('s'))h=Math.max(min,o.h+dy);
+      if(corner.includes('w')){w=Math.max(min,o.w-dx);x=o.x+(o.w-w);} if(corner.includes('n')){h=Math.max(min,o.h-dy);y=o.y+(o.h-h);}
+      if(target==='text'&&ev.shiftKey){const ratio=o.w/o.h;if(w/h>ratio)h=w/ratio;else w=h*ratio; if(corner.includes('w'))x=o.x+o.w-w;if(corner.includes('n'))y=o.y+o.h-h;}
+      Object.assign(box,{x,y,w,h});
+      state.syncing=true;
+      if(target==='text'){setInputMm(E.textW,w);setInputMm(E.textH,h);syncPositionInputs();}
+      else{setInputMm(E.frameW,w);setInputMm(E.frameH,h);}
+      state.syncing=false;renderWithoutInputSync();
+    };
+    const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);render();};
+    window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true});
   }
 
-  function centerObject(){ state.manualPosition = false; render(); }
+  function renderWithoutInputSync(){
+    const old=state.syncing;state.syncing=true;render();state.syncing=old;
+  }
+
+  function updateSummary(){
+    const p=readPaper();E.paperSummary.textContent=`${fmt(p.w)} × ${fmt(p.h)}`;E.textSummary.textContent=`${fmt(state.textBox.w)} × ${fmt(state.textBox.h)}`;E.frameSummary.textContent=E.frameOn.checked?`${fmt(state.frameBox.w)} × ${fmt(state.frameBox.h)}`:'ไม่ใช้';
+    const warnings=[];const tb=state.textBox;if(tb.x<0||tb.y<0||tb.x+tb.w>p.w||tb.y+tb.h>p.h)warnings.push('ตัวอักษรมีส่วนอยู่นอกกระดาษ');
+    if(E.frameOn.checked){const fb=state.frameBox;if(fb.x<0||fb.y<0||fb.x+fb.w>p.w||fb.y+fb.h>p.h)warnings.push('กรอบมีส่วนอยู่นอกกระดาษ');}
+    if(p.w>CUT_WIDTH_MM && Math.max(tb.x+tb.w,E.frameOn.checked?state.frameBox.x+state.frameBox.w:0)>CUT_WIDTH_MM)warnings.push('งานเลยความกว้างอ้างอิง 586 mm ของ CG-60ST');
+    E.warning.classList.toggle('hidden',!warnings.length);E.warning.innerHTML=warnings.map(w=>`• ${esc(w)}`).join('<br>');E.status.textContent=warnings.length?'ตรวจสอบ':'พร้อม';E.status.className=`status ${warnings.length?'warn':'ok'}`;
+  }
+
+  function centerText(){const p=readPaper();state.textBox.x=(p.w-state.textBox.w)/2;state.textBox.y=(p.h-state.textBox.h)/2;state.textPlaced=true;if(E.frameOn.checked&&E.frameW.value.trim()===''&&E.frameH.value.trim()==='')syncFrameFromInputs(true);render();}
 
   function fitPaper(){
-    const job = calculate();
-    const extraMm = 10;
-    const w = job.objectW + extraMm * 2;
-    const h = job.objectH + extraMm * 2;
-    els.paperWidth.value = round(fromMm(w), state.unit === 'cm' ? 2 : 1);
-    els.paperHeight.value = round(fromMm(h), state.unit === 'cm' ? 2 : 1);
-    state.manualPosition = false;
-    render();
+    const target=E.frameOn.checked?state.frameBox:state.textBox;const margin=10;state.syncing=true;setInputMm(E.paperW,target.w+margin*2);setInputMm(E.paperH,target.h+margin*2);state.syncing=false;target.x=margin;target.y=margin;if(E.frameOn.checked){state.textBox.x=state.frameBox.x+(state.frameBox.w-state.textBox.w)/2;state.textBox.y=state.frameBox.y+(state.frameBox.h-state.textBox.h)/2;}else{state.textBox.x=margin;state.textBox.y=margin;}render();
   }
 
   function exportSvg(){
-    const job = calculate();
-    if (!job.i.text && !job.i.frameOn) return;
-    let content = '';
-    if (job.i.frameOn) content += `<rect x="${state.xMm}" y="${state.yMm}" width="${job.frameW}" height="${job.frameH}" fill="none" stroke="#000" stroke-width="0.2"/>`;
-    content += textSvg(job, state.xMm + job.textOffsetX, state.yMm + job.textOffsetY);
-    const svg = `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${job.i.paperW}mm" height="${job.i.paperH}mm" viewBox="0 0 ${job.i.paperW} ${job.i.paperH}">${content}</svg>`;
-    const blob = new Blob([svg], {type:'image/svg+xml;charset=utf-8'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    const name = (job.i.text || 'frame').replace(/[^a-zA-Z0-9ก-๙_-]+/g,'-').slice(0,32);
-    a.download = `CG60ST-${name || 'sticker'}.svg`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    showToast('ดาวน์โหลด SVG แล้ว');
+    const p=readPaper();let content='';if(E.frameOn.checked)content+=`<rect x="${state.frameBox.x}" y="${state.frameBox.y}" width="${state.frameBox.w}" height="${state.frameBox.h}" fill="none" stroke="#000" stroke-width="0.2"/>`;content+=textSvg(state.textBox,false);
+    const svg=`<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${p.w}mm" height="${p.h}mm" viewBox="0 0 ${p.w} ${p.h}">${content}</svg>`;const blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`CG60ST-${(E.text.value||'sticker').replace(/[^a-zA-Z0-9ก-๙_-]+/g,'-').slice(0,32)}.svg`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);toast('ดาวน์โหลด SVG แล้ว');
   }
 
-  const issueCopy = {
-    skew:`<strong>ตัดยาวแล้วเริ่มเบี้ยว</strong><ol><li>ตรวจว่าสติ๊กเกอร์เข้าตรงและม้วนไม่ดึงเอียง</li><li>ตรวจ Pinch Roller ให้อยู่บน Grid Roller</li><li>ลอง Feed วัสดุก่อนตัดงานยาว</li><li>อย่าเริ่มจาก OFFSET เพราะไม่ได้ใช้แก้วัสดุเดินเบี้ยว</li></ol>`,
-    shallow:`<strong>ตัดไม่ขาด</strong><ol><li>ทำ Test Cut</li><li>ตรวจสภาพและระยะยื่นของใบมีด</li><li>ค่อยเพิ่ม PRESS ทีละน้อยและ Test Cut ใหม่</li><li>ถ้ายังมีช่วงไม่ขาด ลองลด SPEED</li></ol>`,
-    deep:`<strong>ตัดลึก / ทะลุกระดาษรอง</strong><ol><li>หยุดงานก่อน</li><li>ตรวจว่าใบมีดยื่นมากเกินไปหรือไม่</li><li>ลด PRESS แล้ว Test Cut ใหม่</li></ol>`,
-    corner:`<strong>มุมตัวอักษรผิดรูป</strong><ol><li>ทำ Test Cut</li><li>ตรวจ OFFSET ของใบมีด</li><li>ปรับทีละน้อยแล้วเทียบผล</li></ol>`,
-    position:`<strong>งานเริ่มตัดผิดตำแหน่ง</strong><ol><li>ตรวจ Origin</li><li>ตั้ง Origin ใหม่ตรงจุดเริ่มงาน</li><li>อย่าใช้ DIST.COMP แก้ตำแหน่งเริ่ม</li></ol>`,
-    offscale:`<strong>ขึ้น OFF SCALE</strong><ol><li>มีส่วนของงานเกินพื้นที่ตัด</li><li>ลดขนาดหรือจัดตำแหน่งใหม่</li><li>เปิด “แสดงพื้นที่ตัด 586 mm” เพื่อตรวจใน Preview</li></ol>`
-  };
-
-  function renderIssue(){
-    const type = els.issueSelect.value;
-    if(type !== 'size'){ els.issueContent.innerHTML = issueCopy[type]; return; }
-    els.issueContent.innerHTML = `<strong>ขนาดที่ตัดออกมาไม่ตรง</strong><p>กรอกขนาดที่ต้องการและขนาดที่วัดได้ ระบบจะหาส่วนต่างให้</p><div class="calc"><label>ขนาดที่ต้องการ (mm)<input id="wantedSize" type="number" step="0.1" value="1000"></label><label>ขนาดที่วัดได้ (mm)<input id="actualSize" type="number" step="0.1" value="999"></label><div class="calc-result">วัดได้ − ต้องการ: <strong id="distResult">-1.0 mm</strong></div></div>`;
-    const wanted = $('wantedSize'), actual = $('actualSize'), result = $('distResult');
-    const calc = () => { const v = Number(actual.value||0)-Number(wanted.value||0); result.textContent = `${v>=0?'+':''}${round(v,1).toFixed(1)} mm`; };
-    wanted.addEventListener('input',calc); actual.addEventListener('input',calc);
-  }
-
-  unitButtons.forEach(b => b.addEventListener('click', () => setUnit(b.dataset.unit)));
-  document.querySelectorAll('.form-card input,.form-card select').forEach(el => el.addEventListener('input', () => {
-    if (el === els.frameEnabled) els.frameFields.classList.toggle('hidden', !els.frameEnabled.checked);
+  function switchUnit(unit){
+    if(unit===state.unit)return;
+    const factor=unit==='cm'?0.1:10;
+    [E.paperW,E.paperH,E.textW,E.textH,E.frameW,E.frameH,E.padX,E.padY,E.posX,E.posY].forEach(el=>{
+      if(el.value.trim()!=='') el.value=round(Number(el.value)*factor,unit==='cm'?2:1);
+    });
+    state.unit=unit;
+    document.querySelectorAll('[data-unit-label]').forEach(el=>el.textContent=unit);
+    document.querySelectorAll('.unit-switch button').forEach(b=>b.classList.toggle('active',b.dataset.unit===unit));
     render();
-  }));
-  [els.previewEnabled,els.dimensionsEnabled,els.safeAreaEnabled].forEach(el => el.addEventListener('change', render));
-  els.posX.addEventListener('input', () => { state.xMm = toMm(Number(els.posX.value)||0); state.manualPosition = true; render(); });
-  els.posY.addEventListener('input', () => { state.yMm = toMm(Number(els.posY.value)||0); state.manualPosition = true; render(); });
-  els.centerBtn.addEventListener('click', centerObject);
-  els.fitPaperBtn.addEventListener('click', fitPaper);
-  els.exportBtn.addEventListener('click', exportSvg);
-  els.issueSelect.addEventListener('change', renderIssue);
+  }
 
-  renderIssue();
-  render();
+  const issueCopy={
+    skew:'<strong>ตัดยาวแล้วเริ่มเบี้ยว</strong><ol><li>ตรวจว่าสติ๊กเกอร์เข้าตรงและม้วนไม่ดึงเอียง</li><li>ตรวจ Pinch Roller ให้อยู่บน Grid Roller</li><li>ลอง Feed วัสดุก่อนตัดงานยาว</li></ol>',
+    shallow:'<strong>ตัดไม่ขาด</strong><ol><li>ทำ Test Cut ก่อน</li><li>ตรวจสภาพและระยะยื่นของใบมีด</li><li>ค่อยปรับ PRESS ทีละน้อยแล้ว Test Cut ใหม่</li><li>ถ้าตัดเร็วเกินไปให้ลองลด SPEED</li></ol>',
+    deep:'<strong>ตัดลึก / ทะลุกระดาษรอง</strong><ol><li>หยุดงานก่อน</li><li>ตรวจว่าใบมีดยื่นมากเกินไปหรือไม่</li><li>ลด PRESS แล้ว Test Cut ใหม่</li></ol>',
+    corner:'<strong>มุมตัวอักษรผิดรูป</strong><ol><li>ทำ Test Cut</li><li>ตรวจ OFFSET ของใบมีด</li><li>ปรับทีละน้อยแล้วเทียบผล</li></ol>',
+    position:'<strong>งานเริ่มตัดผิดตำแหน่ง</strong><ol><li>ตรวจจุด Origin</li><li>ตั้ง Origin ใหม่ตรงตำแหน่งเริ่มงาน</li></ol>',
+    offscale:'<strong>ขึ้น OFF SCALE</strong><ol><li>ตรวจว่างานเกินพื้นที่ตัดหรือไม่</li><li>ลดขนาด หมุน หรือจัดตำแหน่งใหม่</li></ol>'
+  };
+  function renderIssue(){const type=E.issue.value;if(type!=='size'){E.issueContent.innerHTML=issueCopy[type];return;}E.issueContent.innerHTML='<strong>ขนาดที่ตัดออกมาไม่ตรง</strong><p>กรอกขนาดที่ต้องการกับขนาดที่วัดได้ ระบบจะคำนวณส่วนต่างให้</p><div class="calc"><label>ขนาดที่ต้องการ (mm)<input id="wantedSize" type="number" step="0.1" value="1000"></label><label>ขนาดที่วัดได้ (mm)<input id="actualSize" type="number" step="0.1" value="999"></label><div class="calc-result">ส่วนต่าง: <strong id="distResult">-1.0 mm</strong></div></div>';const w=$('wantedSize'),a=$('actualSize'),r=$('distResult');const calc=()=>{const d=val(a,0)-val(w,0);r.textContent=`${d>=0?'+':''}${round(d,1).toFixed(1)} mm`;};w.addEventListener('input',calc);a.addEventListener('input',calc);}
+
+  document.querySelectorAll('.unit-switch button').forEach(b=>b.addEventListener('click',()=>switchUnit(b.dataset.unit)));
+  [E.paperW,E.paperH,E.text,E.textW,E.textH,E.font,E.weight,E.frameW,E.frameH,E.padX,E.padY,E.previewOn,E.dimsOn,E.safeOn].forEach(el=>el.addEventListener('input',()=>{if(!state.syncing){if(el===E.text||el===E.font||el===E.weight||el===E.textW||el===E.textH)syncTextSizeFromInputs();render();}}));
+  E.frameOn.addEventListener('change',()=>{if(E.frameOn.checked){state.framePlaced=false;syncFrameFromInputs(true);state.selected='frame';}else state.selected='text';render();});
+  E.posX.addEventListener('input',()=>{if(!state.syncing){state.textBox.x=toMm(val(E.posX,0));state.textPlaced=true;renderWithoutInputSync();}});E.posY.addEventListener('input',()=>{if(!state.syncing){state.textBox.y=toMm(val(E.posY,0));state.textPlaced=true;renderWithoutInputSync();}});
+  E.center.addEventListener('click',centerText);E.fitPaper.addEventListener('click',fitPaper);E.export.addEventListener('click',exportSvg);E.issue.addEventListener('change',renderIssue);
+  renderIssue();syncTextSizeFromInputs();centerText();render();
 })();
