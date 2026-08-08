@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#111827" />
+  <title>CG-60ST Sticker Job Builder</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">CG</div>
+        <div>
+          <strong>Sticker Job Builder</strong>
+          <span>Mimaki CG-60ST · V1</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="btn ghost" id="newProjectBtn">งานใหม่</button>
+        <button class="btn ghost" id="saveProjectBtn">บันทึก JSON</button>
+        <label class="btn ghost file-btn">เปิด JSON<input id="loadProjectInput" type="file" accept="application/json,.json" /></label>
+        <button class="btn warning" id="troubleshootBtn">แก้ปัญหาการตัด</button>
+        <button class="btn primary" id="preflightBtn">ตรวจงาน / Export</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="panel left-panel">
+        <section class="panel-section">
+          <div class="section-title"><span>1</span><h2>เครื่องและวัสดุ</h2></div>
+          <div class="field-grid two">
+            <label>เครื่อง
+              <input value="Mimaki CG-60ST" disabled />
+            </label>
+            <label>ประเภทวัสดุ
+              <select id="mediaType">
+                <option value="roll">ม้วน (Roll)</option>
+                <option value="sheet">แผ่น (Sheet)</option>
+              </select>
+            </label>
+          </div>
+          <div class="field-grid two">
+            <label>กว้างวัสดุ (mm)
+              <input id="mediaWidth" type="number" min="50" step="0.1" value="600" />
+            </label>
+            <label>ยาววัสดุ (mm)
+              <input id="mediaLength" type="number" min="50" step="0.1" value="1000" />
+            </label>
+          </div>
+          <div class="machine-note">
+            <div><span>พื้นที่ตัดอ้างอิง</span><strong id="safeWidthLabel">586 mm</strong></div>
+            <div><span>Margin งาน</span><strong><input id="marginMm" type="number" min="0" step="0.5" value="10" /> mm</strong></div>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-title"><span>2</span><h2>สร้างตัวอักษร</h2></div>
+          <label>ข้อความ
+            <textarea id="jobText" rows="2" spellcheck="false">WAREHOUSE</textarea>
+          </label>
+          <div class="field-grid two">
+            <label>Font
+              <select id="fontFamily">
+                <option value="Arial">Arial</option>
+                <option value="Arial Narrow">Arial Narrow</option>
+                <option value="Tahoma">Tahoma</option>
+                <option value="Verdana">Verdana</option>
+                <option value="Impact">Impact</option>
+                <option value="sans-serif">System Sans</option>
+              </select>
+            </label>
+            <label>น้ำหนัก
+              <select id="fontWeight">
+                <option value="400">Regular</option>
+                <option value="700" selected>Bold</option>
+              </select>
+            </label>
+          </div>
+          <div class="field-grid three">
+            <label>สูงจริง (mm)
+              <input id="textHeight" type="number" min="2" step="0.5" value="50" />
+            </label>
+            <label>จำนวน
+              <input id="quantity" type="number" min="1" max="200" step="1" value="6" />
+            </label>
+            <label>Gap (mm)
+              <input id="gapMm" type="number" min="0" step="0.5" value="5" />
+            </label>
+          </div>
+          <div class="segmented" id="orientationMode">
+            <button data-mode="auto" class="active">จัดอัตโนมัติ</button>
+            <button data-mode="0">0°</button>
+            <button data-mode="90">90°</button>
+          </div>
+          <label class="toggle-row"><input id="mirrorText" type="checkbox" /><span>Mirror ข้อความ</span></label>
+          <button id="autoArrangeBtn" class="btn primary wide">จัด Layout อัตโนมัติ</button>
+        </section>
+
+        <section class="panel-section compact">
+          <div class="section-title"><span>3</span><h2>Material Profile</h2></div>
+          <div class="field-grid two">
+            <label>ชื่อ Profile
+              <input id="profileName" placeholder="เช่น PVC ขาว" />
+            </label>
+            <label>Condition
+              <select id="conditionSlot">
+                <option>CUT1</option><option>CUT2</option><option>CUT3</option><option>CUT4</option><option>CUT5</option>
+              </select>
+            </label>
+          </div>
+          <div class="field-grid three">
+            <label>Speed (cm/s)<input id="cutSpeed" type="number" min="0" step="1" placeholder="กรอกค่าที่ใช้จริง" /></label>
+            <label>Press (g)<input id="cutPress" type="number" min="0" step="1" placeholder="กรอกค่าที่ใช้จริง" /></label>
+            <label>Offset (mm)<input id="cutOffset" type="number" step="0.01" placeholder="กรอกค่าที่ใช้จริง" /></label>
+          </div>
+          <div class="profile-actions">
+            <select id="savedProfiles"><option value="">เลือก Profile ที่บันทึก...</option></select>
+            <button class="btn ghost" id="saveProfileBtn">บันทึก Profile</button>
+          </div>
+          <p class="helper">ระบบไม่เดาค่าตัด ค่าเหล่านี้ใช้เป็น Job Sheet เพื่อให้ตั้งที่เครื่อง/FineCut ตามค่าที่คุณใช้งานจริง</p>
+        </section>
+      </aside>
+
+      <section class="canvas-column">
+        <div class="canvas-toolbar">
+          <div class="status-cluster">
+            <span class="status-pill ok" id="layoutStatus">พร้อมจัด Layout</span>
+            <span id="jobMetrics">—</span>
+          </div>
+          <div class="zoom-controls">
+            <button id="zoomOut" aria-label="Zoom out">−</button>
+            <span id="zoomLabel">100%</span>
+            <button id="zoomIn" aria-label="Zoom in">+</button>
+            <button id="zoomFit">พอดี</button>
+          </div>
+        </div>
+        <div class="canvas-scroller" id="canvasScroller">
+          <div class="canvas-stage" id="canvasStage">
+            <svg id="layoutSvg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="พื้นที่จัดวางสติ๊กเกอร์"></svg>
+          </div>
+        </div>
+        <div class="canvas-footer">
+          <span><i class="legend material"></i>วัสดุ</span>
+          <span><i class="legend safe"></i>พื้นที่ตัดอ้างอิง</span>
+          <span><i class="legend selected"></i>ชิ้นที่เลือก</span>
+          <span>หน่วยทั้งหมด: mm</span>
+        </div>
+      </section>
+
+      <aside class="panel right-panel">
+        <section class="panel-section">
+          <div class="section-title plain"><h2>ชิ้นที่เลือก</h2></div>
+          <div id="noSelection" class="empty-card">คลิกตัวอักษรใน Canvas เพื่อแก้ตำแหน่ง</div>
+          <div id="selectionEditor" class="selection-editor hidden">
+            <div class="field-grid two">
+              <label>X (mm)<input id="selectedX" type="number" step="0.1" /></label>
+              <label>Y (mm)<input id="selectedY" type="number" step="0.1" /></label>
+            </div>
+            <div class="field-grid two">
+              <label>หมุน
+                <select id="selectedRotation"><option value="0">0°</option><option value="90">90°</option></select>
+              </label>
+              <label>ลำดับ<input id="selectedIndex" disabled /></label>
+            </div>
+            <div class="measurement-card">
+              <div><span>W</span><strong id="selectedW">—</strong></div>
+              <div><span>H</span><strong id="selectedH">—</strong></div>
+            </div>
+            <button id="resetLayoutBtn" class="btn ghost wide">กลับไป Auto Layout</button>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-title plain"><h2>สรุปการใช้วัสดุ</h2></div>
+          <div class="summary-list">
+            <div><span>กว้างวัสดุ</span><strong id="summaryMediaWidth">—</strong></div>
+            <div><span>กว้างพื้นที่ตัด</span><strong id="summaryCutWidth">—</strong></div>
+            <div><span>ความยาวที่ใช้</span><strong id="summaryUsedLength">—</strong></div>
+            <div><span>จำนวน</span><strong id="summaryQty">—</strong></div>
+            <div><span>ขนาดชิ้น</span><strong id="summaryItemSize">—</strong></div>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-title plain"><h2>ตรวจเร็ว</h2></div>
+          <ul class="check-list" id="quickChecks"></ul>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <div class="modal-backdrop hidden" id="preflightModal">
+    <div class="modal large">
+      <div class="modal-head"><div><span class="eyebrow">PRE-FLIGHT</span><h2>ตรวจงานก่อน Export</h2></div><button class="icon-btn" data-close="preflightModal">×</button></div>
+      <div class="preflight-grid">
+        <div>
+          <div id="preflightChecks" class="preflight-checks"></div>
+          <div class="notice amber">
+            <strong>ข้อจำกัด V1</strong>
+            <span>SVG เวอร์ชันแรกยังเก็บข้อความเป็น Text Vector Object ไม่ได้แปลง Font เป็น Curve อัตโนมัติ ควร Convert to Curves/Outline ใน CorelDRAW ก่อนส่งตัด หากคอมปลายทางไม่มี Font เดียวกัน</span>
+          </div>
+        </div>
+        <div class="job-card" id="jobCard"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="downloadJobSheetBtn">ดาวน์โหลด Job Sheet</button>
+        <button class="btn primary" id="exportSvgBtn">Export SVG 1:1</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="troubleshootModal">
+    <div class="modal large troubleshoot-modal">
+      <div class="modal-head"><div><span class="eyebrow">TROUBLESHOOT</span><h2>แก้ปัญหาการตัด</h2></div><button class="icon-btn" data-close="troubleshootModal">×</button></div>
+      <div class="troubleshoot-layout">
+        <nav id="issueNav" class="issue-nav">
+          <button data-issue="size" class="active">ขนาดตัดไม่ตรง</button>
+          <button data-issue="skew">ตัดยาวแล้วเบี้ยว</button>
+          <button data-issue="shallow">ตัดไม่ขาด</button>
+          <button data-issue="deep">ตัดลึก/ทะลุ</button>
+          <button data-issue="corner">มุมตัวอักษรผิด</button>
+          <button data-issue="position">งานอยู่ผิดตำแหน่ง</button>
+          <button data-issue="offscale">OFF SCALE</button>
+        </nav>
+        <div class="issue-content" id="issueContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+  <script src="js/app.js"></script>
+</body>
+</html>
