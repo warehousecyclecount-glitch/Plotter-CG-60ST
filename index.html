@@ -1,54 +1,46 @@
 <!doctype html>
 <html lang="th">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#f7f8fa" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f6f7f9">
   <title>สร้างไฟล์ตัดสติ๊กเกอร์ · CG-60ST</title>
-  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
   <main class="page-shell">
     <header class="hero">
       <div>
-        <p class="eyebrow">STICKER CUT FILE</p>
+        <p class="eyebrow">MIMAKI CG-60ST</p>
         <h1>สร้างไฟล์ตัดสติ๊กเกอร์</h1>
-        <p class="sub">กรอกข้อความและขนาด แล้วดาวน์โหลดไฟล์ไปเปิดใน CorelDRAW / FineCut</p>
+        <p class="sub">กรอกเท่าที่มี แล้วจัดตำแหน่งจาก Preview แบบเรียลไทม์</p>
       </div>
-      <div class="machine-badge">
-        <span>เครื่อง</span>
-        <strong>Mimaki CG-60ST</strong>
+      <div class="unit-switch" aria-label="หน่วยวัด">
+        <button type="button" data-unit="mm" class="active">mm</button>
+        <button type="button" data-unit="cm">cm</button>
       </div>
     </header>
 
-    <section class="main-card">
-      <form id="jobForm" class="simple-form" autocomplete="off">
-        <div class="field full">
-          <label for="jobText">ข้อความที่ต้องการตัด</label>
-          <textarea id="jobText" rows="3" spellcheck="false" placeholder="เช่น WAREHOUSE">WAREHOUSE</textarea>
-        </div>
+    <section class="workspace">
+      <div class="form-card">
+        <section class="form-section">
+          <div class="section-head"><span>1</span><div><h2>ขนาดกระดาษ</h2><p>กำหนดพื้นที่ที่ต้องการจัดงาน</p></div></div>
+          <div class="grid two">
+            <label>กว้าง <div class="input-unit"><input id="paperWidth" type="number" min="1" step="0.1" value="600"><b data-unit-label>mm</b></div></label>
+            <label>ยาว <div class="input-unit"><input id="paperHeight" type="number" min="1" step="0.1" value="300"><b data-unit-label>mm</b></div></label>
+          </div>
+          <button id="fitPaperBtn" class="text-btn" type="button">ปรับกระดาษให้พอดีกับงาน</button>
+        </section>
 
-        <div class="field">
-          <label for="textHeight">ความสูงตัวอักษร</label>
-          <div class="input-unit"><input id="textHeight" type="number" min="2" step="0.5" value="50"><span>mm</span></div>
-        </div>
-
-        <div class="field">
-          <label for="quantity">จำนวน</label>
-          <div class="input-unit"><input id="quantity" type="number" min="1" max="200" step="1" value="1"><span>ชุด</span></div>
-        </div>
-
-        <div class="field full">
-          <label for="mediaWidth">ความกว้างสติ๊กเกอร์ / กระดาษที่ใส่เครื่อง</label>
-          <div class="input-unit"><input id="mediaWidth" type="number" min="50" step="0.1" value="600"><span>mm</span></div>
-          <small>ใช้สำหรับจัดข้อความให้อยู่ในพื้นที่ตัดของ CG-60ST</small>
-        </div>
-
-        <details class="advanced full">
-          <summary>ตั้งค่าเพิ่มเติม</summary>
-          <div class="advanced-grid">
-            <div class="field">
-              <label for="fontFamily">ฟอนต์</label>
+        <section class="form-section">
+          <div class="section-head"><span>2</span><div><h2>ตัวอักษร</h2><p>ขนาดใดไม่ทราบ ปล่อยว่างได้</p></div></div>
+          <label>ข้อความ <input id="jobText" class="text-input" type="text" value="WAREHOUSE" placeholder="เช่น WAREHOUSE"></label>
+          <div class="grid two">
+            <label>ความสูง <div class="input-unit"><input id="textHeight" type="number" min="0" step="0.1" value="50" placeholder="อัตโนมัติ"><b data-unit-label>mm</b></div></label>
+            <label>ความกว้าง <div class="input-unit"><input id="textWidth" type="number" min="0" step="0.1" placeholder="อัตโนมัติ"><b data-unit-label>mm</b></div></label>
+          </div>
+          <div class="grid two">
+            <label>ฟอนต์
               <select id="fontFamily">
                 <option value="Arial">Arial</option>
                 <option value="Arial Narrow">Arial Narrow</option>
@@ -57,62 +49,73 @@
                 <option value="Impact">Impact</option>
                 <option value="sans-serif">System Sans</option>
               </select>
-            </div>
-            <div class="field">
-              <label for="fontWeight">รูปแบบ</label>
+            </label>
+            <label>รูปแบบ
               <select id="fontWeight"><option value="400">ปกติ</option><option value="700" selected>หนา</option></select>
-            </div>
-            <div class="field">
-              <label for="gapMm">ระยะห่างแต่ละชุด</label>
-              <div class="input-unit"><input id="gapMm" type="number" min="0" step="0.5" value="5"><span>mm</span></div>
-            </div>
-            <div class="field">
-              <label for="marginMm">ระยะเผื่อขอบ</label>
-              <div class="input-unit"><input id="marginMm" type="number" min="0" step="0.5" value="10"><span>mm</span></div>
-            </div>
-            <label class="check"><input id="mirrorText" type="checkbox"><span>กลับด้านข้อความ (Mirror)</span></label>
-            <label class="check"><input id="allowRotate" type="checkbox" checked><span>อนุญาตให้หมุน 90° เพื่อประหยัดพื้นที่</span></label>
+            </label>
           </div>
-        </details>
+        </section>
 
-        <button class="primary-action full" type="submit">สร้างไฟล์</button>
-      </form>
+        <section class="form-section">
+          <div class="switch-row">
+            <div><h2>ตีกรอบ</h2><p>เปิดเมื่อชิ้นงานต้องมีกรอบรอบข้อความ</p></div>
+            <label class="switch"><input id="frameEnabled" type="checkbox"><span></span></label>
+          </div>
+          <div id="frameFields" class="frame-fields hidden">
+            <p class="helper">ถ้ารู้ขนาดกรอบ ให้กรอก กว้าง/ยาว ได้เลย ถ้าไม่รู้ให้เว้นว่าง ระบบจะคำนวณจากระยะห่าง</p>
+            <div class="grid two">
+              <label>กรอบกว้าง <div class="input-unit"><input id="frameWidth" type="number" min="0" step="0.1" placeholder="อัตโนมัติ"><b data-unit-label>mm</b></div></label>
+              <label>กรอบยาว <div class="input-unit"><input id="frameHeight" type="number" min="0" step="0.1" placeholder="อัตโนมัติ"><b data-unit-label>mm</b></div></label>
+            </div>
+            <div class="grid two">
+              <label>ห่างตัวอักษร ซ้าย-ขวา <div class="input-unit"><input id="paddingX" type="number" min="0" step="0.1" value="5"><b data-unit-label>mm</b></div></label>
+              <label>ห่างตัวอักษร บน-ล่าง <div class="input-unit"><input id="paddingY" type="number" min="0" step="0.1" value="5"><b data-unit-label>mm</b></div></label>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section compact">
+          <div class="switch-row minor"><div><h3>แสดง Preview</h3></div><label class="switch"><input id="previewEnabled" type="checkbox" checked><span></span></label></div>
+          <div class="switch-row minor"><div><h3>แสดงเส้นบอกขนาด</h3></div><label class="switch"><input id="dimensionsEnabled" type="checkbox" checked><span></span></label></div>
+          <div class="switch-row minor"><div><h3>แสดงพื้นที่ตัด 586 mm</h3></div><label class="switch"><input id="safeAreaEnabled" type="checkbox"><span></span></label></div>
+        </section>
+      </div>
+
+      <div class="preview-card">
+        <div class="preview-head">
+          <div><p class="eyebrow">REALTIME PREVIEW</p><h2>ตัวอย่างกระดาษ</h2></div>
+          <span id="statusBadge" class="status ok">พร้อม</span>
+        </div>
+
+        <div id="previewArea" class="preview-area">
+          <svg id="previewSvg" xmlns="http://www.w3.org/2000/svg" aria-label="ตัวอย่างกระดาษและตำแหน่งงาน"></svg>
+          <div id="previewOff" class="preview-off hidden">Preview ถูกปิด</div>
+        </div>
+
+        <div class="position-row">
+          <div class="position-fields">
+            <label>X <div class="input-unit"><input id="posX" type="number" step="0.1"><b data-unit-label>mm</b></div></label>
+            <label>Y <div class="input-unit"><input id="posY" type="number" step="0.1"><b data-unit-label>mm</b></div></label>
+          </div>
+          <button id="centerBtn" class="secondary-btn" type="button">จัดกึ่งกลาง</button>
+        </div>
+        <p class="drag-hint">ลากข้อความหรือกรอบบน Preview เพื่อกำหนดตำแหน่งได้</p>
+
+        <div class="summary-grid">
+          <div><span>กระดาษ</span><strong id="paperSummary">—</strong></div>
+          <div><span>ตัวอักษร</span><strong id="textSummary">—</strong></div>
+          <div><span>กรอบ</span><strong id="frameSummary">ไม่ใช้</strong></div>
+        </div>
+        <div id="warningBox" class="warning hidden"></div>
+
+        <button id="exportBtn" class="primary-btn" type="button">ดาวน์โหลด SVG ขนาดจริง 1:1</button>
+        <p class="font-note">ตอนนี้ SVG ยังใช้ฟอนต์ของเครื่องอยู่ ควรตรวจฟอนต์ใน CorelDRAW ก่อนส่งตัด</p>
+      </div>
     </section>
 
-    <section id="resultCard" class="result-card hidden" aria-live="polite">
-      <div class="result-head">
-        <div><p class="eyebrow">PREVIEW</p><h2>ไฟล์พร้อมดาวน์โหลด</h2></div>
-        <span id="statusBadge" class="status ok">พร้อม</span>
-      </div>
-
-      <div class="preview-wrap">
-        <svg id="previewSvg" xmlns="http://www.w3.org/2000/svg" aria-label="ตัวอย่างการจัดวาง"></svg>
-      </div>
-
-      <div class="summary-grid">
-        <div><span>ขนาดตัวอักษร</span><strong id="itemSize">—</strong></div>
-        <div><span>จำนวน</span><strong id="qtySummary">—</strong></div>
-        <div><span>พื้นที่ตัดที่ใช้</span><strong id="cutWidthSummary">—</strong></div>
-        <div><span>ความยาวที่ใช้ประมาณ</span><strong id="usedLengthSummary">—</strong></div>
-      </div>
-
-      <div id="warningBox" class="warning hidden"></div>
-
-      <div class="download-row">
-        <button id="exportSvgBtn" class="primary-action" type="button">ดาวน์โหลด SVG 1:1</button>
-        <button id="editBtn" class="secondary-action" type="button">แก้ข้อมูล</button>
-      </div>
-
-      <p class="font-note">หมายเหตุ: V1 ยังเก็บตัวอักษรเป็นข้อความอยู่ ควรตรวจฟอนต์ใน CorelDRAW ก่อนส่งตัด</p>
-    </section>
-
-    <section class="help-card">
-      <button id="helpToggle" class="help-toggle" type="button">
-        <span><strong>ตัดแล้วมีปัญหา?</strong><small>ช่วยบอกว่าควรตรวจหรือปรับตรงไหน</small></span>
-        <span>›</span>
-      </button>
-      <div id="helpBody" class="help-body hidden">
-        <label for="issueSelect">เลือกอาการ</label>
+    <details class="help-card">
+      <summary><span><strong>ตัดแล้วมีปัญหา?</strong><small>ดูว่าควรตรวจหรือปรับตรงไหน</small></span><b>+</b></summary>
+      <div class="help-body">
         <select id="issueSelect">
           <option value="size">ขนาดที่ตัดออกมาไม่ตรง</option>
           <option value="skew">ตัดยาวแล้วเริ่มเบี้ยว</option>
@@ -124,7 +127,7 @@
         </select>
         <div id="issueContent" class="issue-content"></div>
       </div>
-    </section>
+    </details>
   </main>
 
   <div id="toast" class="toast hidden"></div>
