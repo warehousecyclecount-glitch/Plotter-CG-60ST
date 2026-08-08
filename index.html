@@ -13,7 +13,7 @@
       <div>
         <p class="eyebrow">MIMAKI CG-60ST</p>
         <h1>สร้างไฟล์ตัดสติ๊กเกอร์</h1>
-        <p class="sub">กรอกเท่าที่มี แล้วจัดตำแหน่งจาก Preview แบบเรียลไทม์</p>
+        <p class="sub">กรอกข้อมูลเท่าที่มี แล้วจัดตำแหน่งและขนาดจาก Preview ได้ทันที</p>
       </div>
       <div class="unit-switch" aria-label="หน่วยวัด">
         <button type="button" data-unit="mm" class="active">mm</button>
@@ -24,20 +24,20 @@
     <section class="workspace">
       <div class="form-card">
         <section class="form-section">
-          <div class="section-head"><span>1</span><div><h2>ขนาดกระดาษ</h2><p>กำหนดพื้นที่ที่ต้องการจัดงาน</p></div></div>
+          <div class="section-head"><span>1</span><div><h2>ขนาดกระดาษ</h2><p>กำหนดพื้นที่งานที่ต้องการ</p></div></div>
           <div class="grid two">
-            <label>กว้าง <div class="input-unit"><input id="paperWidth" type="number" min="1" step="0.1" value="600"><b data-unit-label>mm</b></div></label>
-            <label>ยาว <div class="input-unit"><input id="paperHeight" type="number" min="1" step="0.1" value="300"><b data-unit-label>mm</b></div></label>
+            <label>กว้าง<div class="input-unit"><input id="paperWidth" type="number" min="1" step="0.1" value="600"><b data-unit-label>mm</b></div></label>
+            <label>ยาว<div class="input-unit"><input id="paperHeight" type="number" min="1" step="0.1" value="300"><b data-unit-label>mm</b></div></label>
           </div>
           <button id="fitPaperBtn" class="text-btn" type="button">ปรับกระดาษให้พอดีกับงาน</button>
         </section>
 
         <section class="form-section">
-          <div class="section-head"><span>2</span><div><h2>ตัวอักษร</h2><p>ขนาดใดไม่ทราบ ปล่อยว่างได้</p></div></div>
-          <label>ข้อความ <input id="jobText" class="text-input" type="text" value="WAREHOUSE" placeholder="เช่น WAREHOUSE"></label>
+          <div class="section-head"><span>2</span><div><h2>ตัวอักษร</h2><p>กรอกขนาดที่รู้ หรือปรับจาก Preview ด้วยเมาส์</p></div></div>
+          <label>ข้อความ<input id="jobText" class="text-input" type="text" value="WAREHOUSE" placeholder="เช่น WAREHOUSE"></label>
           <div class="grid two">
-            <label>ความสูง <div class="input-unit"><input id="textHeight" type="number" min="0" step="0.1" value="50" placeholder="อัตโนมัติ"><b data-unit-label>mm</b></div></label>
-            <label>ความกว้าง <div class="input-unit"><input id="textWidth" type="number" min="0" step="0.1" placeholder="อัตโนมัติ"><b data-unit-label>mm</b></div></label>
+            <label>ความกว้าง<div class="input-unit"><input id="textWidth" type="number" min="0" step="0.1" placeholder="อัตโนมัติ"><b data-unit-label>mm</b></div></label>
+            <label>ความสูง<div class="input-unit"><input id="textHeight" type="number" min="0" step="0.1" value="50"><b data-unit-label>mm</b></div></label>
           </div>
           <div class="grid two">
             <label>ฟอนต์
@@ -50,9 +50,7 @@
                 <option value="sans-serif">System Sans</option>
               </select>
             </label>
-            <label>รูปแบบ
-              <select id="fontWeight"><option value="400">ปกติ</option><option value="700" selected>หนา</option></select>
-            </label>
+            <label>รูปแบบ<select id="fontWeight"><option value="400">ปกติ</option><option value="700" selected>หนา</option></select></label>
           </div>
         </section>
 
@@ -62,22 +60,25 @@
             <label class="switch"><input id="frameEnabled" type="checkbox"><span></span></label>
           </div>
           <div id="frameFields" class="frame-fields hidden">
-            <p class="helper">ถ้ารู้ขนาดกรอบ ให้กรอก กว้าง/ยาว ได้เลย ถ้าไม่รู้ให้เว้นว่าง ระบบจะคำนวณจากระยะห่าง</p>
             <div class="grid two">
-              <label>กรอบกว้าง <div class="input-unit"><input id="frameWidth" type="number" min="0" step="0.1" placeholder="อัตโนมัติ"><b data-unit-label>mm</b></div></label>
-              <label>กรอบยาว <div class="input-unit"><input id="frameHeight" type="number" min="0" step="0.1" placeholder="อัตโนมัติ"><b data-unit-label>mm</b></div></label>
+              <label>กรอบกว้าง<div class="input-unit"><input id="frameWidth" type="number" min="0" step="0.1" placeholder="อัตโนมัติ"><b data-unit-label>mm</b></div></label>
+              <label>กรอบยาว<div class="input-unit"><input id="frameHeight" type="number" min="0" step="0.1" placeholder="อัตโนมัติ"><b data-unit-label>mm</b></div></label>
             </div>
             <div class="grid two">
-              <label>ห่างตัวอักษร ซ้าย-ขวา <div class="input-unit"><input id="paddingX" type="number" min="0" step="0.1" value="5"><b data-unit-label>mm</b></div></label>
-              <label>ห่างตัวอักษร บน-ล่าง <div class="input-unit"><input id="paddingY" type="number" min="0" step="0.1" value="5"><b data-unit-label>mm</b></div></label>
+              <label>ห่างซ้าย-ขวา<div class="input-unit"><input id="paddingX" type="number" min="0" step="0.1" value="5"><b data-unit-label>mm</b></div></label>
+              <label>ห่างบน-ล่าง<div class="input-unit"><input id="paddingY" type="number" min="0" step="0.1" value="5"><b data-unit-label>mm</b></div></label>
             </div>
+            <small class="helper">ถ้าไม่กรอกขนาดกรอบ ระบบจะให้กรอบพอดีกับตัวอักษรตามระยะห่างที่กำหนด</small>
           </div>
         </section>
 
         <section class="form-section compact">
           <div class="switch-row minor"><div><h3>แสดง Preview</h3></div><label class="switch"><input id="previewEnabled" type="checkbox" checked><span></span></label></div>
           <div class="switch-row minor"><div><h3>แสดงเส้นบอกขนาด</h3></div><label class="switch"><input id="dimensionsEnabled" type="checkbox" checked><span></span></label></div>
-          <div class="switch-row minor"><div><h3>แสดงพื้นที่ตัด 586 mm</h3></div><label class="switch"><input id="safeAreaEnabled" type="checkbox"><span></span></label></div>
+          <div class="switch-row minor">
+            <div><h3>แสดงขอบเขตความกว้างตัดของเครื่อง</h3><p>เส้นอ้างอิง 586 mm จากจุดเริ่มงาน</p></div>
+            <label class="switch"><input id="safeAreaEnabled" type="checkbox"><span></span></label>
+          </div>
         </section>
       </div>
 
@@ -92,14 +93,19 @@
           <div id="previewOff" class="preview-off hidden">Preview ถูกปิด</div>
         </div>
 
+        <div class="mouse-help">
+          <span><i class="dot text-dot"></i>คลิกตัวอักษรแล้วลากเพื่อย้าย</span>
+          <span><i class="dot frame-dot"></i>คลิกกรอบแล้วลากเพื่อย้าย</span>
+          <span><i class="handle-demo"></i>ลากจุดมุมเพื่อปรับขนาด</span>
+        </div>
+
         <div class="position-row">
           <div class="position-fields">
-            <label>X <div class="input-unit"><input id="posX" type="number" step="0.1"><b data-unit-label>mm</b></div></label>
-            <label>Y <div class="input-unit"><input id="posY" type="number" step="0.1"><b data-unit-label>mm</b></div></label>
+            <label>X<div class="input-unit"><input id="posX" type="number" step="0.1"><b data-unit-label>mm</b></div></label>
+            <label>Y<div class="input-unit"><input id="posY" type="number" step="0.1"><b data-unit-label>mm</b></div></label>
           </div>
-          <button id="centerBtn" class="secondary-btn" type="button">จัดกึ่งกลาง</button>
+          <button id="centerBtn" class="secondary-btn" type="button">จัดตัวอักษรกึ่งกลาง</button>
         </div>
-        <p class="drag-hint">ลากข้อความหรือกรอบบน Preview เพื่อกำหนดตำแหน่งได้</p>
 
         <div class="summary-grid">
           <div><span>กระดาษ</span><strong id="paperSummary">—</strong></div>
@@ -109,7 +115,7 @@
         <div id="warningBox" class="warning hidden"></div>
 
         <button id="exportBtn" class="primary-btn" type="button">ดาวน์โหลด SVG ขนาดจริง 1:1</button>
-        <p class="font-note">ตอนนี้ SVG ยังใช้ฟอนต์ของเครื่องอยู่ ควรตรวจฟอนต์ใน CorelDRAW ก่อนส่งตัด</p>
+        <p class="font-note">SVG ตอนนี้ยังใช้ฟอนต์ของเครื่องอยู่ ควรตรวจฟอนต์ใน CorelDRAW ก่อนส่งตัด</p>
       </div>
     </section>
 
