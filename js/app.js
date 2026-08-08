@@ -14,7 +14,7 @@
   let seq = 1;
   const state = {
     unit:'mm', paper:{w:600,h:300}, margin:10, gap:5,
-    items:[], placements:[], activeItemId:null, selected:{placementId:null,part:'text'}, dragging:null
+    items:[], placements:[], activeItemId:null, selected:{placementId:null,part:null}, dragging:null
   };
 
   const round=(v,d=1)=>Math.round(v*10**d)/10**d;
@@ -54,9 +54,7 @@
       }
     });
     state.placements=next;
-    if(!state.selected.placementId||!placementById(state.selected.placementId)){
-      const first=state.placements.find(p=>p.itemId===state.activeItemId)||state.placements[0];state.selected.placementId=first?.id||null;state.selected.part='text';
-    }
+    if(state.selected.placementId&&!placementById(state.selected.placementId))state.selected={placementId:null,part:null};
   }
 
   function refreshPaperFromInputs(){state.paper.w=Math.max(1,toMm(readNum(E.paperW,600)));state.paper.h=Math.max(1,toMm(readNum(E.paperH,300)));}
@@ -84,16 +82,16 @@
   }
 
   function addItem(){
-    const item=newItem(`ข้อความ ${state.items.length+1}`);state.items.push(item);state.activeItemId=item.id;ensurePlacements();autoArrange(false);renderAll();
+    const item=newItem(`ข้อความ ${state.items.length+1}`);state.items.push(item);state.activeItemId=item.id;ensurePlacements();const p=state.placements.find(x=>x.itemId===item.id);state.selected={placementId:p?.id||null,part:p?'text':null};autoArrange(false);renderAll();
   }
 
   function duplicateItem(id){
-    const src=itemById(id);if(!src)return;const item={...src,id:`item-${seq++}`,text:`${src.text} copy`};state.items.push(item);state.activeItemId=item.id;ensurePlacements();autoArrange(false);renderAll();
+    const src=itemById(id);if(!src)return;const item={...src,id:`item-${seq++}`,text:`${src.text} copy`};state.items.push(item);state.activeItemId=item.id;ensurePlacements();const p=state.placements.find(x=>x.itemId===item.id);state.selected={placementId:p?.id||null,part:p?'text':null};autoArrange(false);renderAll();
   }
 
   function deleteItem(id){
     if(state.items.length<=1){toast('ต้องมีอย่างน้อย 1 ชิ้นงาน');return;}
-    const idx=state.items.findIndex(i=>i.id===id);state.items.splice(idx,1);state.activeItemId=state.items[Math.max(0,idx-1)].id;ensurePlacements();renderAll();
+    const idx=state.items.findIndex(i=>i.id===id);state.items.splice(idx,1);state.activeItemId=state.items[Math.max(0,idx-1)].id;ensurePlacements();const p=state.placements.find(x=>x.itemId===state.activeItemId);state.selected={placementId:p?.id||null,part:p?'text':null};renderAll();
   }
 
   function layerDragStart(e,id){e.dataTransfer.setData('text/plain',id);e.dataTransfer.effectAllowed='move';}
@@ -127,9 +125,19 @@
   }
 
   function svgPoint(ev){const pt=E.svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;const m=E.svg.getScreenCTM();return m?pt.matrixTransform(m.inverse()):{x:0,y:0};}
+
+  function deselectCanvas(){state.selected={placementId:null,part:null};renderCanvas();renderLayers();}
+
+  function editTextFromCanvas(placementId){
+    const pl=placementById(placementId);if(!pl)return;state.activeItemId=pl.itemId;state.selected={placementId,part:'text'};renderAll();
+    requestAnimationFrame(()=>{E.text.focus();E.text.select();toast('พิมพ์แก้ข้อความได้เลย');});
+  }
+
   function bindCanvas(){
     E.svg.querySelectorAll('[data-move]').forEach(el=>el.addEventListener('pointerdown',e=>startMove(e,el.dataset.placement,el.dataset.move)));
     E.svg.querySelectorAll('[data-resize]').forEach(el=>el.addEventListener('pointerdown',e=>startResize(e,state.selected.placementId,el.dataset.resize,el.dataset.handle)));
+    E.svg.onclick=e=>{if(e.target===E.svg||e.target.classList.contains('paper'))deselectCanvas();};
+    E.svg.ondblclick=e=>{const text=e.target.closest?.('.job-text');if(!text)return;e.preventDefault();e.stopPropagation();editTextFromCanvas(text.dataset.placement);};
   }
 
   function startMove(e,placementId,part){e.preventDefault();e.stopPropagation();const pl=placementById(placementId);if(!pl)return;state.activeItemId=pl.itemId;state.selected={placementId,part};const start=svgPoint(e);const ox=part==='frame'?pl.frameX:pl.textX,oy=part==='frame'?pl.frameY:pl.textY;
@@ -154,7 +162,7 @@
 
   function updateStatus(){
     let outside=0;state.placements.forEach(pl=>{const item=itemById(pl.itemId);if(!item)return;const boxes=[{x:pl.textX,y:pl.textY,w:item.w,h:item.h}];if(item.frame){const f=frameSize(item);boxes.push({x:pl.frameX,y:pl.frameY,w:f.w,h:f.h});}if(boxes.some(b=>b.x<0||b.y<0||b.x+b.w>state.paper.w||b.y+b.h>state.paper.h))outside++;});
-    E.status.textContent=outside?`นอกกระดาษ ${outside}`:'พร้อม';E.status.className=`status ${outside?'warn':'ok'}`;const pl=placementById(state.selected.placementId),item=pl&&itemById(pl.itemId);E.selectionLabel.textContent=item?`${item.text} · ชุด ${pl.copy+1} · ${state.selected.part==='frame'?'กรอบ':'ตัวอักษร'}`:'เลือกชิ้นงานจาก Preview หรือ Layers';E.paperSummary.textContent=`กระดาษ ${fmt(state.paper.w)} × ${fmt(state.paper.h)} · ${state.placements.length} ชิ้น`;
+    E.status.textContent=outside?`นอกกระดาษ ${outside}`:'พร้อม';E.status.className=`status ${outside?'warn':'ok'}`;const pl=placementById(state.selected.placementId),item=pl&&itemById(pl.itemId);E.selectionLabel.textContent=item?`${item.text} · ชุด ${pl.copy+1} · ${state.selected.part==='frame'?'กรอบ':'ตัวอักษร'}`:'ไม่ได้เลือกชิ้นงาน · ดับเบิลคลิกข้อความเพื่อแก้ไข';E.paperSummary.textContent=`กระดาษ ${fmt(state.paper.w)} × ${fmt(state.paper.h)} · ${state.placements.length} ชิ้น`;
   }
 
   function setTab(tab){const layers=tab==='layers';E.layersTab.classList.toggle('active',layers);E.arrangeTab.classList.toggle('active',!layers);E.layersView.classList.toggle('hidden',!layers);E.arrangeView.classList.toggle('hidden',layers);}
@@ -176,5 +184,5 @@
   E.margin.addEventListener('input',()=>refreshLayoutSettings());E.gap.addEventListener('input',()=>refreshLayoutSettings());E.resetView.addEventListener('click',()=>{E.viewport.scrollTo({left:0,top:0,behavior:'smooth'});toast('ปรับมุมมองแล้ว');});E.export.addEventListener('click',exportSvg);E.dims.addEventListener('change',()=>renderCanvas());
   document.querySelectorAll('[data-arrange]').forEach(b=>b.addEventListener('click',()=>arrangeSelected(b.dataset.arrange)));document.querySelectorAll('.unit-switch button').forEach(b=>b.addEventListener('click',()=>switchUnit(b.dataset.unit)));
 
-  state.items=[newItem('WAREHOUSE'),newItem('EXIT')];state.items[1].h=30;state.items[1].w=70;state.activeItemId=state.items[0].id;ensurePlacements();autoArrange(false);setTab('layers');renderAll();
+  state.items=[newItem('WAREHOUSE'),newItem('EXIT')];state.items[1].h=30;state.items[1].w=70;state.activeItemId=state.items[0].id;ensurePlacements();autoArrange(false);state.selected={placementId:null,part:null};setTab('layers');renderAll();
 })();
