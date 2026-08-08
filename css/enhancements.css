@@ -1,0 +1,7 @@
+.canvas-viewport{display:block;text-align:center;overflow:auto}
+.canvas-viewport svg{display:inline-block;max-width:none!important;max-height:none!important;overflow:visible}
+.workspace-bg{fill:#e9ebef;cursor:default}
+.rotate-stem{stroke:#7c3aed;stroke-width:1.2;pointer-events:none}
+.rotate-handle{fill:#7c3aed;stroke:#fff;stroke-width:1.2;cursor:grab}
+.rotate-handle:active{cursor:grabbing}
+.rotate-glyph{fill:#fff;font-size:10px;font-weight:800;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
