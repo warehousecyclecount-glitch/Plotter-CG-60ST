@@ -3,135 +3,179 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#f6f7f9">
-  <title>สร้างไฟล์ตัดสติ๊กเกอร์ · CG-60ST</title>
+  <meta name="theme-color" content="#f4f5f7">
+  <title>Sticker Layout · Mimaki CG-60ST</title>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-  <main class="page-shell">
-    <header class="hero">
-      <div>
-        <p class="eyebrow">MIMAKI CG-60ST</p>
-        <h1>สร้างไฟล์ตัดสติ๊กเกอร์</h1>
-        <p class="sub">กรอกข้อมูลเท่าที่มี แล้วจัดตำแหน่งและขนาดจาก Preview ได้ทันที</p>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <div><strong>Sticker Layout</strong><small>Mimaki CG-60ST</small></div>
       </div>
-      <div class="unit-switch" aria-label="หน่วยวัด">
-        <button type="button" data-unit="mm" class="active">mm</button>
-        <button type="button" data-unit="cm">cm</button>
+      <div class="topbar-center">
+        <label>กระดาษ</label>
+        <div class="paper-size-inline">
+          <input id="paperWidth" type="number" min="1" step="0.1" value="600" aria-label="ความกว้างกระดาษ">
+          <span>×</span>
+          <input id="paperHeight" type="number" min="1" step="0.1" value="300" aria-label="ความยาวกระดาษ">
+          <b class="unit-inline">mm</b>
+        </div>
+      </div>
+      <div class="top-actions">
+        <div class="unit-switch" aria-label="หน่วยวัด">
+          <button type="button" data-unit="mm" class="active">mm</button>
+          <button type="button" data-unit="cm">cm</button>
+        </div>
+        <button id="exportBtn" class="primary-btn" type="button">Export SVG 1:1</button>
       </div>
     </header>
 
-    <section class="workspace">
-      <div class="form-card">
-        <section class="form-section">
-          <div class="section-head"><span>1</span><div><h2>ขนาดกระดาษ</h2><p>กำหนดพื้นที่งานที่ต้องการ</p></div></div>
-          <div class="grid two">
-            <label>กว้าง<div class="input-unit"><input id="paperWidth" type="number" min="1" step="0.1" value="600"><b data-unit-label>mm</b></div></label>
-            <label>ยาว<div class="input-unit"><input id="paperHeight" type="number" min="1" step="0.1" value="300"><b data-unit-label>mm</b></div></label>
-          </div>
-          <button id="fitPaperBtn" class="text-btn" type="button">ปรับกระดาษให้พอดีกับงาน</button>
-        </section>
+    <main class="workspace">
+      <aside class="left-panel panel">
+        <div class="panel-head">
+          <div><span class="eyebrow">SELECTED ITEM</span><h2 id="editorTitle">ชิ้นงาน 1</h2></div>
+          <button id="addItemBtn" class="add-btn" type="button">+ เพิ่มชิ้นงาน</button>
+        </div>
 
-        <section class="form-section">
-          <div class="section-head"><span>2</span><div><h2>ตัวอักษร</h2><p>กรอกขนาดที่รู้ หรือปรับจาก Preview ด้วยเมาส์</p></div></div>
-          <label>ข้อความ<input id="jobText" class="text-input" type="text" value="WAREHOUSE" placeholder="เช่น WAREHOUSE"></label>
-          <div class="grid two">
-            <label>ความกว้าง<div class="input-unit"><input id="textWidth" type="number" min="0" step="0.1" placeholder="อัตโนมัติ"><b data-unit-label>mm</b></div></label>
-            <label>ความสูง<div class="input-unit"><input id="textHeight" type="number" min="0" step="0.1" value="50"><b data-unit-label>mm</b></div></label>
-          </div>
-          <div class="grid two">
-            <label>ฟอนต์
-              <select id="fontFamily">
-                <option value="Arial">Arial</option>
-                <option value="Arial Narrow">Arial Narrow</option>
-                <option value="Tahoma">Tahoma</option>
-                <option value="Verdana">Verdana</option>
-                <option value="Impact">Impact</option>
-                <option value="sans-serif">System Sans</option>
-              </select>
+        <div class="editor-scroll">
+          <section class="field-section">
+            <label class="field full">ข้อความ
+              <input id="jobText" class="text-input" type="text" value="WAREHOUSE" placeholder="ข้อความที่ต้องการตัด">
             </label>
-            <label>รูปแบบ<select id="fontWeight"><option value="400">ปกติ</option><option value="700" selected>หนา</option></select></label>
-          </div>
-        </section>
-
-        <section class="form-section">
-          <div class="switch-row">
-            <div><h2>ตีกรอบ</h2><p>เปิดเมื่อชิ้นงานต้องมีกรอบรอบข้อความ</p></div>
-            <label class="switch"><input id="frameEnabled" type="checkbox"><span></span></label>
-          </div>
-          <div id="frameFields" class="frame-fields hidden">
             <div class="grid two">
-              <label>กรอบกว้าง<div class="input-unit"><input id="frameWidth" type="number" min="0" step="0.1" placeholder="อัตโนมัติ"><b data-unit-label>mm</b></div></label>
-              <label>กรอบยาว<div class="input-unit"><input id="frameHeight" type="number" min="0" step="0.1" placeholder="อัตโนมัติ"><b data-unit-label>mm</b></div></label>
+              <label class="field">กว้าง
+                <div class="input-unit"><input id="textWidth" type="number" min="1" step="0.1"><span data-unit-label>mm</span></div>
+              </label>
+              <label class="field">สูง
+                <div class="input-unit"><input id="textHeight" type="number" min="1" step="0.1"><span data-unit-label>mm</span></div>
+              </label>
             </div>
             <div class="grid two">
-              <label>ห่างซ้าย-ขวา<div class="input-unit"><input id="paddingX" type="number" min="0" step="0.1" value="5"><b data-unit-label>mm</b></div></label>
-              <label>ห่างบน-ล่าง<div class="input-unit"><input id="paddingY" type="number" min="0" step="0.1" value="5"><b data-unit-label>mm</b></div></label>
+              <label class="field">ฟอนต์
+                <select id="fontFamily">
+                  <option value="Arial">Arial</option>
+                  <option value="Arial Narrow">Arial Narrow</option>
+                  <option value="Tahoma">Tahoma</option>
+                  <option value="Verdana">Verdana</option>
+                  <option value="Impact">Impact</option>
+                  <option value="sans-serif">System Sans</option>
+                </select>
+              </label>
+              <label class="field">รูปแบบ
+                <select id="fontWeight"><option value="400">ปกติ</option><option value="700">หนา</option></select>
+              </label>
             </div>
-            <small class="helper">ถ้าไม่กรอกขนาดกรอบ ระบบจะให้กรอบพอดีกับตัวอักษรตามระยะห่างที่กำหนด</small>
+            <label class="field">จำนวน
+              <input id="quantity" type="number" min="1" max="200" step="1" value="1">
+            </label>
+          </section>
+
+          <section class="field-section">
+            <div class="switch-row">
+              <div><strong>ตีกรอบ</strong><small>เพิ่มเส้นกรอบรอบข้อความ</small></div>
+              <label class="switch"><input id="frameEnabled" type="checkbox"><span></span></label>
+            </div>
+            <div id="frameFields" class="frame-fields hidden">
+              <div class="grid two">
+                <label class="field">กรอบกว้าง
+                  <div class="input-unit"><input id="frameWidth" type="number" min="1" step="0.1"><span data-unit-label>mm</span></div>
+                </label>
+                <label class="field">กรอบสูง
+                  <div class="input-unit"><input id="frameHeight" type="number" min="1" step="0.1"><span data-unit-label>mm</span></div>
+                </label>
+              </div>
+              <div class="grid two">
+                <label class="field">ห่างซ้าย-ขวา
+                  <div class="input-unit"><input id="paddingX" type="number" min="0" step="0.1"><span data-unit-label>mm</span></div>
+                </label>
+                <label class="field">ห่างบน-ล่าง
+                  <div class="input-unit"><input id="paddingY" type="number" min="0" step="0.1"><span data-unit-label>mm</span></div>
+                </label>
+              </div>
+              <button id="fitFrameBtn" class="secondary-btn full" type="button">ให้กรอบพอดีกับตัวอักษร</button>
+            </div>
+          </section>
+
+          <section class="field-section compact">
+            <div class="switch-row minor">
+              <div><strong>แสดงเส้นบอกขนาด</strong></div>
+              <label class="switch"><input id="dimensionsEnabled" type="checkbox" checked><span></span></label>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <section class="canvas-column">
+        <div class="canvas-toolbar">
+          <div class="canvas-status">
+            <span id="statusBadge" class="status ok">พร้อม</span>
+            <span id="selectionLabel">เลือกชิ้นงานจาก Preview หรือ Layers</span>
           </div>
-        </section>
-
-        <section class="form-section compact">
-          <div class="switch-row minor"><div><h3>แสดง Preview</h3></div><label class="switch"><input id="previewEnabled" type="checkbox" checked><span></span></label></div>
-          <div class="switch-row minor"><div><h3>แสดงเส้นบอกขนาด</h3></div><label class="switch"><input id="dimensionsEnabled" type="checkbox" checked><span></span></label></div>
-          <input id="safeAreaEnabled" type="checkbox" hidden>
-        </section>
-      </div>
-
-      <div class="preview-card">
-        <div class="preview-head">
-          <div><p class="eyebrow">REALTIME PREVIEW</p><h2>ตัวอย่างกระดาษ</h2></div>
-          <span id="statusBadge" class="status ok">พร้อม</span>
-        </div>
-
-        <div id="previewArea" class="preview-area">
-          <svg id="previewSvg" xmlns="http://www.w3.org/2000/svg" aria-label="ตัวอย่างกระดาษและตำแหน่งงาน"></svg>
-          <div id="previewOff" class="preview-off hidden">Preview ถูกปิด</div>
-        </div>
-
-        <div class="mouse-help">
-          <span><i class="dot text-dot"></i>คลิกตัวอักษรแล้วลากเพื่อย้าย</span>
-          <span><i class="dot frame-dot"></i>คลิกกรอบแล้วลากเพื่อย้าย</span>
-          <span><i class="handle-demo"></i>ลากจุดมุมเพื่อปรับขนาด</span>
-        </div>
-
-        <div class="position-row">
-          <div class="position-fields">
-            <label>X<div class="input-unit"><input id="posX" type="number" step="0.1"><b data-unit-label>mm</b></div></label>
-            <label>Y<div class="input-unit"><input id="posY" type="number" step="0.1"><b data-unit-label>mm</b></div></label>
+          <div class="toolbar-actions">
+            <button id="autoArrangeTopBtn" type="button">จัดให้พอดีกระดาษ</button>
+            <button id="resetViewBtn" type="button">พอดีหน้าจอ</button>
           </div>
-          <button id="centerBtn" class="secondary-btn" type="button">จัดตัวอักษรกึ่งกลาง</button>
+        </div>
+        <div id="canvasViewport" class="canvas-viewport">
+          <svg id="previewSvg" xmlns="http://www.w3.org/2000/svg" aria-label="Preview กระดาษและชิ้นงาน"></svg>
+        </div>
+        <div class="canvas-footer">
+          <span>ลากข้อความหรือกรอบเพื่อย้าย</span>
+          <span>ลากจุดมุมเพื่อปรับขนาด</span>
+          <span id="paperSummary">—</span>
+        </div>
+      </section>
+
+      <aside class="right-panel panel">
+        <div class="right-title-row"><h2>Position</h2><span class="panel-grip">⋮⋮</span></div>
+        <div class="tabs">
+          <button id="arrangeTab" type="button">Arrange</button>
+          <button id="layersTab" type="button" class="active">Layers</button>
         </div>
 
-        <div class="summary-grid">
-          <div><span>กระดาษ</span><strong id="paperSummary">—</strong></div>
-          <div><span>ตัวอักษร</span><strong id="textSummary">—</strong></div>
-          <div><span>กรอบ</span><strong id="frameSummary">ไม่ใช้</strong></div>
+        <div id="layersView" class="right-view">
+          <div class="segmented">
+            <button type="button" class="active">All</button>
+            <button type="button" disabled>Overlapping</button>
+          </div>
+          <div id="layerList" class="layer-list"></div>
+          <button id="addLayerBtn" class="add-layer-btn" type="button">+ เพิ่มชิ้นงาน</button>
         </div>
-        <div id="warningBox" class="warning hidden"></div>
 
-        <button id="exportBtn" class="primary-btn" type="button">ดาวน์โหลด SVG ขนาดจริง 1:1</button>
-        <p class="font-note">SVG ตอนนี้ยังใช้ฟอนต์ของเครื่องอยู่ ควรตรวจฟอนต์ใน CorelDRAW ก่อนส่งตัด</p>
-      </div>
-    </section>
-
-    <details class="help-card">
-      <summary><span><strong>ตัดแล้วมีปัญหา?</strong><small>ดูว่าควรตรวจหรือปรับตรงไหน</small></span><b>+</b></summary>
-      <div class="help-body">
-        <select id="issueSelect">
-          <option value="size">ขนาดที่ตัดออกมาไม่ตรง</option>
-          <option value="skew">ตัดยาวแล้วเริ่มเบี้ยว</option>
-          <option value="shallow">ตัดไม่ขาด</option>
-          <option value="deep">ตัดลึก / ทะลุกระดาษรอง</option>
-          <option value="corner">มุมตัวอักษรผิดรูป</option>
-          <option value="position">งานเริ่มตัดผิดตำแหน่ง</option>
-          <option value="offscale">เครื่องขึ้น OFF SCALE</option>
-        </select>
-        <div id="issueContent" class="issue-content"></div>
-      </div>
-    </details>
-  </main>
+        <div id="arrangeView" class="right-view hidden">
+          <div class="arrange-card hero-arrange">
+            <strong>จัด Layout อัตโนมัติ</strong>
+            <small>เรียงทุกชิ้นลงกระดาษโดยไม่ย่อขนาด</small>
+            <button id="autoArrangeBtn" class="primary-btn full" type="button">จัดให้พอดีกระดาษ</button>
+          </div>
+          <div class="arrange-card">
+            <span class="arrange-label">ชิ้นที่เลือก</span>
+            <div class="arrange-grid">
+              <button data-arrange="left" type="button">ชิดซ้าย</button>
+              <button data-arrange="hcenter" type="button">กึ่งกลางแนวนอน</button>
+              <button data-arrange="right" type="button">ชิดขวา</button>
+              <button data-arrange="top" type="button">ชิดบน</button>
+              <button data-arrange="vcenter" type="button">กึ่งกลางแนวตั้ง</button>
+              <button data-arrange="bottom" type="button">ชิดล่าง</button>
+            </div>
+          </div>
+          <div class="arrange-card">
+            <span class="arrange-label">ระยะจัดวาง</span>
+            <div class="grid two">
+              <label class="field">ขอบกระดาษ
+                <div class="input-unit"><input id="layoutMargin" type="number" min="0" step="0.1" value="10"><span data-unit-label>mm</span></div>
+              </label>
+              <label class="field">ห่างชิ้นงาน
+                <div class="input-unit"><input id="layoutGap" type="number" min="0" step="0.1" value="5"><span data-unit-label>mm</span></div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
 
   <div id="toast" class="toast hidden"></div>
   <script src="js/app.js"></script>
