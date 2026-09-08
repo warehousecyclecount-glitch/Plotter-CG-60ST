@@ -5,9 +5,9 @@
   if (!M) throw new Error('StickerModelV3 is required before app-v3.js');
   const $ = id => document.getElementById(id);
   const E = {
-    paperW:$('paperWidth'), paperH:$('paperHeight'), addItem:$('addItemBtn'), addLayer:$('addLayerBtn'), editorTitle:$('editorTitle'),
-    text:$('jobText'), textW:$('textWidth'), textH:$('textHeight'), font:$('fontFamily'), weight:$('fontWeight'), qty:$('quantity'),
-    frameOn:$('frameEnabled'), frameFields:$('frameFields'), frameW:$('frameWidth'), frameH:$('frameHeight'), padX:$('paddingX'), padY:$('paddingY'), fitFrame:$('fitFrameBtn'),
+    paperW:$('paperWidth'), paperH:$('paperHeight'), addItem:$('addItemBtn'), addLayer:$('addLayerBtn'), addFrame:$('addFrameBtn'), addLayerFrame:$('addLayerFrameBtn'), editorTitle:$('editorTitle'),
+    text:$('jobText'), textW:$('textWidth'), textH:$('textHeight'), font:$('fontFamily'), weight:$('fontWeight'), qty:$('quantity'), textSection:$('textEditorSection'),
+    frameOn:$('frameEnabled'), frameFields:$('frameFields'), frameToggleRow:$('frameToggleRow'), frameOnlyIntro:$('frameOnlyIntro'), framePaddingFields:$('framePaddingFields'), addTextToFrame:$('addTextToFrameBtn'), frameW:$('frameWidth'), frameH:$('frameHeight'), padX:$('paddingX'), padY:$('paddingY'), fitFrame:$('fitFrameBtn'),
     dims:$('dimensionsEnabled'), svg:$('previewSvg'), viewport:$('canvasViewport'), status:$('statusBadge'), selectionLabel:$('selectionLabel'), paperSummary:$('paperSummary'),
     arrangeTab:$('arrangeTab'), layersTab:$('layersTab'), layersView:$('layersView'), arrangeView:$('arrangeView'), layerList:$('layerList'), autoArrange:$('autoArrangeBtn'), autoArrangeTop:$('autoArrangeTopBtn'),
     margin:$('layoutMargin'), gap:$('layoutGap'), resetView:$('resetViewBtn'), export:$('exportBtn'), toast:$('toast'),
@@ -103,17 +103,28 @@
     const d=activeDesign();
     if(!d)return;
     const t=textFor(d.id),f=frameFor(d.id);
+    E.qty.value=d.qty;
     if(!t){
       E.editorTitle.textContent=d.name||'กรอบ';
-      E.text.value='';E.text.disabled=true;E.font.disabled=true;E.weight.disabled=true;E.textW.disabled=true;E.textH.disabled=true;
-      E.frameOn.checked=!!f;E.frameOn.disabled=true;E.frameFields.classList.toggle('hidden',!f);
+      E.textSection?.classList.add('hidden');
+      E.frameToggleRow?.classList.add('hidden');
+      E.frameOnlyIntro?.classList.remove('hidden');
+      E.frameFields.classList.remove('hidden');
+      E.framePaddingFields?.classList.add('hidden');
+      E.fitFrame?.classList.add('hidden');
+      E.frameOn.checked=!!f;E.frameOn.disabled=true;
       if(f){setMm(E.frameW,f.size.w);setMm(E.frameH,f.size.h);}
-      E.qty.value=d.qty;setMm(E.padX,d.padding.x);setMm(E.padY,d.padding.y);updateToolState();return;
+      setMm(E.padX,d.padding.x);setMm(E.padY,d.padding.y);updateToolState();return;
     }
-    E.text.disabled=false;E.font.disabled=false;E.weight.disabled=false;E.textW.disabled=false;E.textH.disabled=false;E.frameOn.disabled=false;
+    E.textSection?.classList.remove('hidden');
+    E.frameToggleRow?.classList.remove('hidden');
+    E.frameOnlyIntro?.classList.add('hidden');
+    E.frameOn.disabled=false;
     E.editorTitle.textContent=(t.text||'ข้อความ').replace(/\n/g,' / ');
-    E.text.value=t.text;setMm(E.textW,t.size.w);setMm(E.textH,t.size.h);E.font.value=t.font.family;E.weight.value=t.font.weight;E.qty.value=d.qty;
+    E.text.value=t.text;setMm(E.textW,t.size.w);setMm(E.textH,t.size.h);E.font.value=t.font.family;E.weight.value=t.font.weight;
     E.frameOn.checked=!!f;E.frameFields.classList.toggle('hidden',!f);
+    E.framePaddingFields?.classList.toggle('hidden',!f);
+    E.fitFrame?.classList.toggle('hidden',!f);
     if(f){setMm(E.frameW,f.size.w);setMm(E.frameH,f.size.h);}
     else {setMm(E.frameW,t.size.w+d.padding.x*2);setMm(E.frameH,t.size.h+d.padding.y*2);}
     setMm(E.padX,d.padding.x);setMm(E.padY,d.padding.y);updateToolState();
@@ -156,9 +167,22 @@
     M.getObjectsForDesign(state.project,d.id).forEach(o=>{const t=transformFor(p,o);t.x+=dx;t.y+=dy;});
   }
   function addItem(){
-    pushHistory();const label=`ข้อความ ${state.project.designs.length+1}`,size=defaultTextSize(label);
+    pushHistory();const label=`ข้อความ ${state.project.designs.filter(d=>textFor(d.id)).length+1}`,size=defaultTextSize(label);
     const {design,text}=M.addTextDesign(state.project,label,{...size,qty:1,padding:{x:5,y:5}});
-    state.activeDesignId=design.id;const p=placementForDesign(design.id);moveDesignPlacementToPoint(design,p,pointForPaste());state.selected={placementId:p.id,objectId:text.id};renderAll();
+    state.activeDesignId=design.id;const p=placementForDesign(design.id);moveDesignPlacementToPoint(design,p,pointForPaste());state.selected={placementId:p.id,objectId:text.id};renderAll();toast('เพิ่มข้อความแล้ว');
+  }
+  function addFrameDesign(){
+    pushHistory();const label=`กรอบ ${state.project.designs.filter(d=>frameFor(d.id)&&!textFor(d.id)).length+1}`;
+    const {design,frame}=M.addFrameDesign(state.project,{designName:label,name:label,w:120,h:70,qty:1,padding:{x:5,y:5}});
+    state.activeDesignId=design.id;const p=placementForDesign(design.id);moveDesignPlacementToPoint(design,p,pointForPaste());state.selected={placementId:p.id,objectId:frame.id};renderAll();toast('เพิ่มกรอบแล้ว');
+  }
+  function addTextIntoActiveFrame(){
+    const d=activeDesign(),f=d&&frameFor(d.id);if(!d||!f||textFor(d.id))return;
+    pushHistory();const label='ข้อความ',lineH=Math.min(40,Math.max(12,f.size.h*.45)),size=defaultTextSize(label,'Arial','700',lineH);
+    const text=M.createTextObject(state.project,{text:label,fontFamily:'Arial',fontWeight:'700',w:size.w,h:size.h,name:label});
+    M.attachObject(state.project,d.id,text.id);M.ensurePlacements(state.project,d.id);
+    state.project.placements.filter(p=>p.designId===d.id).forEach(p=>{const ft=transformFor(p,f),tt=transformFor(p,text);tt.x=ft.x+(f.size.w-text.size.w)/2;tt.y=ft.y+(f.size.h-text.size.h)/2;tt.rotation=ft.rotation;});
+    d.name=label;const selectedPlacement=placementById(state.selected.placementId);const p=selectedPlacement?.designId===d.id?selectedPlacement:placementForDesign(d.id);state.selected={placementId:p.id,objectId:text.id};state.activeDesignId=d.id;renderAll();toast('ใส่ข้อความในกรอบแล้ว');
   }
   function cloneDesignAtPoint(designId,useMouse=true){
     const src=M.getDesign(state.project,designId);if(!src)return null;pushHistory();const clone=M.cloneDesign(state.project,designId,{qty:1,offsetX:10,offsetY:10});
@@ -167,7 +191,7 @@
   }
   function duplicateSelected(){const p=placementById(state.selected.placementId);if(p)cloneDesignAtPoint(p.designId,true);}
   function deleteDesign(designId,save=true){
-    if(state.project.designs.length<=1){toast('ต้องมีอย่างน้อย 1 ข้อความ');return false;}if(save)pushHistory();const idx=state.project.designs.findIndex(d=>d.id===designId);M.removeDesign(state.project,designId);
+    if(state.project.designs.length<=1){toast('ต้องมีอย่างน้อย 1 ชิ้นงาน');return false;}if(save)pushHistory();const idx=state.project.designs.findIndex(d=>d.id===designId);M.removeDesign(state.project,designId);
     const next=state.project.designs[Math.max(0,idx-1)]||state.project.designs[0];state.activeDesignId=next?.id||null;state.selected={placementId:null,objectId:null};renderAll();return true;
   }
   function deleteSelected(){
@@ -193,8 +217,8 @@
   function layerDragStart(e,id){e.dataTransfer.setData('text/plain',id);e.dataTransfer.effectAllowed='move';}
   function layerDrop(e,targetId){e.preventDefault();const srcId=e.dataTransfer.getData('text/plain');if(!srcId||srcId===targetId)return;const from=state.project.designs.findIndex(d=>d.id===srcId),to=state.project.designs.findIndex(d=>d.id===targetId);if(from<0||to<0)return;pushHistory();const[m]=state.project.designs.splice(from,1);state.project.designs.splice(to,0,m);renderLayers();}
   function renderLayers(){
-    E.layerList.innerHTML='';state.project.designs.forEach((d,index)=>{const t=textFor(d.id),f=frameFor(d.id),name=t?.text||d.name||`ชุด ${index+1}`,size=f?.size||t?.size||{w:0,h:0};const row=document.createElement('div');row.className=`layer-row ${d.id===state.activeDesignId?'active':''}`;row.draggable=true;row.dataset.id=d.id;
-      row.innerHTML=`<span class="drag-grip" title="ลากสลับลำดับ">⠿</span><div class="layer-name"><strong>${esc(name)}</strong><small>${fmt(size.w)} × ${fmt(size.h)} · ×${d.qty}${f?' · มีกรอบ':''}</small></div><div class="layer-actions"><button class="icon-mini duplicate" title="Duplicate">⧉</button><button class="icon-mini danger delete" title="ลบ">×</button></div>`;
+    E.layerList.innerHTML='';state.project.designs.forEach((d,index)=>{const t=textFor(d.id),f=frameFor(d.id),name=t?.text||d.name||`ชุด ${index+1}`,size=f?.size||t?.size||{w:0,h:0},kind=t&&f?'ข้อความ + กรอบ':t?'ข้อความ':'กรอบ';const row=document.createElement('div');row.className=`layer-row ${d.id===state.activeDesignId?'active':''}`;row.draggable=true;row.dataset.id=d.id;
+      row.innerHTML=`<span class="drag-grip" title="ลากสลับลำดับ">⠿</span><div class="layer-name"><strong>${esc(name)}</strong><span class="object-kind">${kind}</span><small>${fmt(size.w)} × ${fmt(size.h)} · ×${d.qty}</small></div><div class="layer-actions"><button class="icon-mini duplicate" title="ทำสำเนา">⧉</button><button class="icon-mini danger delete" title="ลบ">×</button></div>`;
       row.addEventListener('click',e=>{if(e.target.closest('button'))return;state.activeDesignId=d.id;const p=placementForDesign(d.id);state.selected=p?{placementId:p.id,objectId:t?.id||f?.id||null}:{placementId:null,objectId:null};renderAll();});
       row.querySelector('.duplicate').addEventListener('click',e=>{e.stopPropagation();cloneDesignAtPoint(d.id,false);});row.querySelector('.delete').addEventListener('click',e=>{e.stopPropagation();deleteDesign(d.id,true);});
       row.addEventListener('dragstart',e=>layerDragStart(e,d.id));row.addEventListener('dragover',e=>e.preventDefault());row.addEventListener('drop',e=>layerDrop(e,d.id));E.layerList.appendChild(row);
@@ -220,7 +244,7 @@
     const paper=state.project.paper,pad=Math.max(150,Math.min(320,Math.max(paper.w,paper.h)*.3));E.svg.setAttribute('viewBox',`${-pad} ${-pad} ${paper.w+pad*2} ${paper.h+pad*2}`);E.svg.setAttribute('width',`${Math.max(520,paper.w+pad*2)}px`);E.svg.setAttribute('height',`${Math.max(420,paper.h+pad*2)}px`);
     let s=`<rect class="workspace-bg" data-workspace="1" x="${-pad}" y="${-pad}" width="${paper.w+pad*2}" height="${paper.h+pad*2}"/><rect class="paper" data-paper="1" x="0" y="0" width="${paper.w}" height="${paper.h}"/>`;
     state.project.placements.forEach(p=>{const d=M.getDesign(state.project,p.designId);if(!d||d.visible===false)return;M.getObjectsForDesign(state.project,d.id).forEach(o=>{if(o.visible===false)return;if(o.type==='frame')s+=frameMarkup(o,p,true);else if(o.type==='text')s+=state.editing?.placementId===p.id&&state.editing?.objectId===o.id?inlineEditorMarkup(o,p):textMarkup(o,p,true);});});
-    normalizeSelection();if(!state.editing&&state.selected.placementId&&state.selected.objectId){const p=placementById(state.selected.placementId),o=objectById(state.selected.objectId);if(p&&o){const t=transformFor(p,o),box={x:t.x,y:t.y,w:o.size.w,h:o.size.h,objectId:o.id},type=o.type==='frame'?'frame':'text';let overlay='';if(E.dims.checked)overlay+=(type==='frame'?dimH(box.x,box.y,box.w,fmt(box.w),-16)+dimV(box.x+box.w,box.y,box.h,fmt(box.h),16):dimH(box.x,box.y+box.h,box.w,fmt(box.w),16)+dimV(box.x,box.y,box.h,fmt(box.h),-16));overlay+=`<rect class="selection-box ${type}" x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}"/>${handles(box,type)}${type==='text'?rotateHandle(box):''}`;s+=rotGroup(overlay,t.rotation,box.x+box.w/2,box.y+box.h/2);}}
+    normalizeSelection();if(!state.editing&&state.selected.placementId&&state.selected.objectId){const p=placementById(state.selected.placementId),o=objectById(state.selected.objectId);if(p&&o){const t=transformFor(p,o),box={x:t.x,y:t.y,w:o.size.w,h:o.size.h,objectId:o.id},type=o.type==='frame'?'frame':'text';let overlay='';if(E.dims.checked)overlay+=(type==='frame'?dimH(box.x,box.y,box.w,fmt(box.w),-16)+dimV(box.x+box.w,box.y,box.h,fmt(box.h),16):dimH(box.x,box.y+box.h,box.w,fmt(box.w),16)+dimV(box.x,box.y,box.h,fmt(box.h),-16));overlay+=`<rect class="selection-box ${type}" x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}"/>${handles(box,type)}${rotateHandle(box)}`;s+=rotGroup(overlay,t.rotation,box.x+box.w/2,box.y+box.h/2);}}
     E.svg.innerHTML=s;bindCanvas();bindInlineEditor();updateStatus();
   }
 
@@ -234,18 +258,18 @@
   function bindCanvas(){E.svg.addEventListener('pointermove',e=>{const p=svgPoint(e);state.mouse={x:p.x,y:p.y,valid:true};});E.svg.querySelectorAll('[data-workspace],[data-paper]').forEach(el=>el.addEventListener('pointerdown',e=>{if(e.target!==el)return;state.selected={placementId:null,objectId:null};if(state.editing)commitInlineEdit();else renderCanvas();}));E.svg.querySelectorAll('.job-text,.frame-shape').forEach(el=>el.addEventListener('pointerdown',e=>startMove(e,el.dataset.placement,el.dataset.object)));E.svg.querySelectorAll('[data-resize]').forEach(el=>el.addEventListener('pointerdown',e=>startResize(e,state.selected.placementId,el.dataset.resize,el.dataset.handle)));E.svg.querySelectorAll('[data-rotate]').forEach(el=>el.addEventListener('pointerdown',e=>startRotate(e,state.selected.placementId,el.dataset.rotate)));}
   function startMove(e,placementId,objectId){if(state.editing)return;e.preventDefault();e.stopPropagation();const p=placementById(placementId),o=objectById(objectId);if(!p||!o)return;const tr=transformFor(p,o),start=svgPoint(e),ox=tr.x,oy=tr.y,now=Date.now();const isDouble=o.type==='text'&&state.lastClick.placementId===placementId&&state.lastClick.objectId===objectId&&(now-state.lastClick.time)<360;state.lastClick={placementId,objectId,time:now};state.activeDesignId=p.designId;state.selected={placementId,objectId};renderEditor();renderLayers();updateStatus();let moved=false,saved=false;const move=ev=>{const cur=svgPoint(ev),dx=cur.x-start.x,dy=cur.y-start.y;if(!moved&&Math.hypot(dx,dy)<1.2)return;moved=true;if(!saved){pushHistory();saved=true;}tr.x=ox+dx;tr.y=oy+dy;state.mouse={x:cur.x,y:cur.y,valid:true};renderCanvas();};const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);if(moved){renderAll(false);return;}if(isDouble){beginInlineEdit(placementId,objectId);return;}renderAll();};window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true});}
   function startResize(e,placementId,objectId,corner){e.preventDefault();e.stopPropagation();const p=placementById(placementId),o=objectById(objectId);if(!p||!o)return;pushHistory();state.activeDesignId=p.designId;state.selected={placementId,objectId};const tr=transformFor(p,o),orig={x:tr.x,y:tr.y,w:o.size.w,h:o.size.h},min=3,angle=tr.rotation,cx=orig.x+orig.w/2,cy=orig.y+orig.h/2,startRaw=svgPoint(e),start=angle?localPoint(startRaw,cx,cy,angle):startRaw;const move=ev=>{const raw=svgPoint(ev),cur=angle?localPoint(raw,cx,cy,angle):raw,dx=cur.x-start.x,dy=cur.y-start.y;let x=orig.x,y=orig.y,w=orig.w,h=orig.h;if(corner.includes('e'))w=Math.max(min,orig.w+dx);if(corner.includes('s'))h=Math.max(min,orig.h+dy);if(corner.includes('w')){w=Math.max(min,orig.w-dx);x=orig.x+orig.w-w;}if(corner.includes('n')){h=Math.max(min,orig.h-dy);y=orig.y+orig.h-h;}o.size.w=w;o.size.h=h;tr.x=x;tr.y=y;renderCanvas();renderEditor();renderLayers();};const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);renderAll();};window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true});}
-  function startRotate(e,placementId,objectId){e.preventDefault();e.stopPropagation();const p=placementById(placementId),o=objectById(objectId);if(!p||o?.type!=='text')return;pushHistory();state.activeDesignId=p.designId;state.selected={placementId,objectId};const tr=transformFor(p,o),cx=tr.x+o.size.w/2,cy=tr.y+o.size.h/2,start=svgPoint(e),startA=Math.atan2(start.y-cy,start.x-cx)/deg,base=tr.rotation;const move=ev=>{const pt=svgPoint(ev),a=Math.atan2(pt.y-cy,pt.x-cx)/deg;let next=base+(a-startA);if(ev.shiftKey)next=Math.round(next/15)*15;tr.rotation=((next%360)+360)%360;renderCanvas();};const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);renderAll(false);};window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true});}
+  function startRotate(e,placementId,objectId){e.preventDefault();e.stopPropagation();const p=placementById(placementId),o=objectById(objectId);if(!p||!o)return;pushHistory();state.activeDesignId=p.designId;state.selected={placementId,objectId};const tr=transformFor(p,o),cx=tr.x+o.size.w/2,cy=tr.y+o.size.h/2,start=svgPoint(e),startA=Math.atan2(start.y-cy,start.x-cx)/deg,base=tr.rotation;const move=ev=>{const pt=svgPoint(ev),a=Math.atan2(pt.y-cy,pt.x-cx)/deg;let next=base+(a-startA);if(ev.shiftKey)next=Math.round(next/15)*15;tr.rotation=((next%360)+360)%360;renderCanvas();};const up=()=>{window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);renderAll(false);};window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true});}
 
   function autoArrange(showToast=true,save=true){
     if(save)pushHistory();refreshPaperFromInputs();refreshLayoutSettings();M.ensurePlacements(state.project);const margin=state.project.layout.margin,gap=state.project.layout.gap;let x=margin,y=margin,rowH=0,unplaced=0;
     const ordered=[];state.project.designs.forEach(d=>state.project.placements.filter(p=>p.designId===d.id).sort((a,b)=>a.copy-b.copy).forEach(p=>ordered.push({d,p})));
     ordered.forEach(({d,p})=>{const t=textFor(d.id),f=frameFor(d.id),outer=f?.size||t?.size;if(!outer)return;if(x+outer.w>state.project.paper.w-margin&&x>margin){x=margin;y+=rowH+gap;rowH=0;}if(y+outer.h>state.project.paper.h-margin){unplaced++;return;}if(f){const ft=transformFor(p,f);ft.x=x;ft.y=y;ft.rotation=0;if(t){const tt=transformFor(p,t);tt.x=x+(f.size.w-t.size.w)/2;tt.y=y+(f.size.h-t.size.h)/2;tt.rotation=0;}}else if(t){const tt=transformFor(p,t);tt.x=x;tt.y=y;tt.rotation=0;}x+=outer.w+gap;rowH=Math.max(rowH,outer.h);});
-    renderAll(false);if(showToast)toast(unplaced?`วางไม่หมด ${unplaced} ชิ้น — ไม่ได้ย่อขนาดให้อัตโนมัติ`:'จัด Layout ให้แล้ว');
+    renderAll(false);if(showToast)toast(unplaced?`วางไม่หมด ${unplaced} ชิ้น — ไม่ได้ย่อขนาดให้อัตโนมัติ`:'จัดลงกระดาษให้แล้ว');
   }
   function arrangeSelected(mode){const p=placementById(state.selected.placementId),o=selectedObject();if(!p||!o)return;pushHistory();const t=transformFor(p,o);let x=t.x,y=t.y;if(mode==='left')x=0;if(mode==='hcenter')x=(state.project.paper.w-o.size.w)/2;if(mode==='right')x=state.project.paper.w-o.size.w;if(mode==='top')y=0;if(mode==='vcenter')y=(state.project.paper.h-o.size.h)/2;if(mode==='bottom')y=state.project.paper.h-o.size.h;t.x=x;t.y=y;renderAll(false);}
 
   function updateStatus(){
-    E.status.textContent='พร้อม';E.status.className='status ok';const p=placementById(state.selected.placementId),o=selectedObject(),d=p&&M.getDesign(state.project,p.designId),text=d&&textFor(d.id);E.selectionLabel.textContent=p&&o?`${text?.text?.replace(/\n/g,' / ')||o.name||'กรอบ'} · ชุด ${p.copy+1} · ${o.type==='frame'?'กรอบ':'ตัวอักษร'}${transformFor(p,o).rotation?` · ${round(transformFor(p,o).rotation,0)}°`:''}`:'เลือกข้อความจาก Preview หรือ Layers';E.paperSummary.textContent=`กระดาษ ${fmt(state.project.paper.w)} × ${fmt(state.project.paper.h)} · ${state.project.placements.length} ชิ้น`;updateToolState();
+    E.status.textContent='พร้อม';E.status.className='status ok';const p=placementById(state.selected.placementId),o=selectedObject(),d=p&&M.getDesign(state.project,p.designId),text=d&&textFor(d.id);E.selectionLabel.textContent=p&&o?`${text?.text?.replace(/\n/g,' / ')||o.name||'กรอบ'} · ชุด ${p.copy+1} · ${o.type==='frame'?'กรอบ':'ตัวอักษร'}${transformFor(p,o).rotation?` · ${round(transformFor(p,o).rotation,0)}°`:''}`:'เลือกชิ้นงานจากพื้นที่ทำงานหรือรายการวัตถุ';E.paperSummary.textContent=`กระดาษ ${fmt(state.project.paper.w)} × ${fmt(state.project.paper.h)} · ${state.project.placements.length} ชิ้น`;updateToolState();
   }
   function setTab(tab){const layers=tab==='layers';E.layersTab.classList.toggle('active',layers);E.arrangeTab.classList.toggle('active',!layers);E.layersView.classList.toggle('hidden',!layers);E.arrangeView.classList.toggle('hidden',layers);}
   function exportSvg(){
@@ -261,7 +285,7 @@
   [E.paperW,E.paperH,E.text,E.textW,E.textH,E.font,E.weight,E.qty,E.frameOn,E.frameW,E.frameH,E.padX,E.padY,E.margin,E.gap].forEach(el=>el?.addEventListener('focus',()=>pushHistory(),{passive:true}));
   E.paperW.addEventListener('input',()=>{refreshPaperFromInputs();renderAll(false);});E.paperH.addEventListener('input',()=>{refreshPaperFromInputs();renderAll(false);});E.text.addEventListener('input',()=>syncItemFromEditor('text'));E.textW.addEventListener('input',()=>syncItemFromEditor('textW'));E.textH.addEventListener('input',()=>syncItemFromEditor('textH'));E.font.addEventListener('change',()=>syncItemFromEditor('font'));E.weight.addEventListener('change',()=>syncItemFromEditor('weight'));E.qty.addEventListener('input',()=>syncItemFromEditor('qty'));E.frameOn.addEventListener('change',()=>syncItemFromEditor('frame'));E.frameW.addEventListener('input',()=>syncItemFromEditor('frameW'));E.frameH.addEventListener('input',()=>syncItemFromEditor('frameH'));E.padX.addEventListener('input',()=>syncItemFromEditor('padX'));E.padY.addEventListener('input',()=>syncItemFromEditor('padY'));
   E.fitFrame.addEventListener('click',()=>{const d=activeDesign(),t=d&&textFor(d.id);if(!d||!t)return;pushHistory();M.fitFrameToText(state.project,d.id);renderAll();});
-  E.addItem.addEventListener('click',addItem);E.addLayer.addEventListener('click',addItem);E.layersTab.addEventListener('click',()=>setTab('layers'));E.arrangeTab.addEventListener('click',()=>setTab('arrange'));E.autoArrange.addEventListener('click',()=>autoArrange(true,true));E.autoArrangeTop.addEventListener('click',()=>autoArrange(true,true));E.margin.addEventListener('input',refreshLayoutSettings);E.gap.addEventListener('input',refreshLayoutSettings);E.resetView.addEventListener('click',()=>{E.viewport.scrollTo({left:0,top:0,behavior:'smooth'});toast('ปรับมุมมองแล้ว');});E.export.addEventListener('click',exportSvg);E.dims.addEventListener('change',()=>renderCanvas());
+  E.addItem.addEventListener('click',addItem);E.addLayer.addEventListener('click',addItem);E.addFrame?.addEventListener('click',addFrameDesign);E.addLayerFrame?.addEventListener('click',addFrameDesign);E.addTextToFrame?.addEventListener('click',addTextIntoActiveFrame);E.layersTab.addEventListener('click',()=>setTab('layers'));E.arrangeTab.addEventListener('click',()=>setTab('arrange'));E.autoArrange.addEventListener('click',()=>autoArrange(true,true));E.autoArrangeTop.addEventListener('click',()=>autoArrange(true,true));E.margin.addEventListener('input',refreshLayoutSettings);E.gap.addEventListener('input',refreshLayoutSettings);E.resetView.addEventListener('click',()=>{E.viewport.scrollTo({left:0,top:0,behavior:'smooth'});toast('ปรับมุมมองแล้ว');});E.export.addEventListener('click',exportSvg);E.dims.addEventListener('change',()=>renderCanvas());
   E.undo.addEventListener('click',undo);E.redo.addEventListener('click',redo);E.copy.addEventListener('click',copySelected);E.paste.addEventListener('click',pasteItem);E.duplicate?.addEventListener('click',duplicateSelected);E.bold.addEventListener('click',toggleBold);E.del.addEventListener('click',deleteSelected);
   document.querySelectorAll('[data-arrange]').forEach(b=>b.addEventListener('click',()=>arrangeSelected(b.dataset.arrange)));document.querySelectorAll('.unit-switch button').forEach(b=>b.addEventListener('click',()=>switchUnit(b.dataset.unit)));
 
@@ -269,5 +293,5 @@
   M.addTextDesign(state.project,'EXIT',{w:70,h:30,qty:1,padding:{x:5,y:5}});state.activeDesignId=a.design.id;M.ensurePlacements(state.project);autoArrange(false,false);state.selected={placementId:null,objectId:null};setTab('layers');syncUnitButtons();renderAll();
 
   // Exposed only for integration diagnostics/tests on the V3 preview. Production UI never depends on this.
-  globalThis.__StickerV3Diagnostics=Object.freeze({schemaVersion:M.SCHEMA_VERSION,getProject:()=>M.deepClone(state.project),validate:()=>M.validateProject(state.project)});
+  globalThis.__StickerV3Diagnostics=Object.freeze({schemaVersion:M.SCHEMA_VERSION,features:{independentFrame:true,frameFirstTextLater:true,frameRotation:true},getProject:()=>M.deepClone(state.project),validate:()=>M.validateProject(state.project)});
 })();
