@@ -1,0 +1,39 @@
+name: V3 Foundation CI
+
+on:
+  push:
+    branches:
+      - v3-foundation
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Syntax check model
+        run: node --check js/model-v3.js
+
+      - name: Syntax check editor
+        run: node --check js/app-v3.js
+
+      - name: Run V3 model regression tests
+        run: node tests/model-v3.test.js
+
+      - name: Verify preview runtime wiring
+        run: |
+          grep -q 'js/model-v3.js' v3-preview.html
+          grep -q 'js/app-v3.js' v3-preview.html
+          if grep -q 'js/app-v2.js' v3-preview.html; then
+            echo 'v3-preview.html must not load app-v2.js'
+            exit 1
+          fi
