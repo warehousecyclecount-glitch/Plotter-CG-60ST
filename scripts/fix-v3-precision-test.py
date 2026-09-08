@@ -5,7 +5,7 @@ from pathlib import Path
 test_path = Path('tests/v3-precision.spec.js')
 test_text = test_path.read_text(encoding='utf-8')
 before_test = """  const beforeArrow = { frame:{...first.transforms[frame.id]}, text:{...first.transforms[text.id]} };\n  await page.keyboard.press('ArrowRight');"""
-after_test = """  // A real canvas click must release focus from the Rotation input before keyboard nudging.\n  await page.locator(frameSelector).click({ position:{x:3,y:3}, force:true });\n  const beforeArrow = { frame:{...first.transforms[frame.id]}, text:{...first.transforms[text.id]} };\n  await page.keyboard.press('ArrowRight');"""
+after_test = """  // Click a real visible point inside the rotated frame. Using the locator bounding-box\n  // corner is unreliable after SVG rotation because that corner may be outside the rect.\n  const canvasPoint = await page.locator(frameSelector).evaluate(el => {\n    const svg = el.ownerSVGElement, pt = svg.createSVGPoint();\n    pt.x = Number(el.getAttribute('x')) + 15;\n    pt.y = Number(el.getAttribute('y')) + 15;\n    const screen = pt.matrixTransform(el.getScreenCTM());\n    return { x:screen.x, y:screen.y };\n  });\n  await page.mouse.click(canvasPoint.x, canvasPoint.y);\n  const beforeArrow = { frame:{...first.transforms[frame.id]}, text:{...first.transforms[text.id]} };\n  await page.keyboard.press('ArrowRight');"""
 if before_test not in test_text:
     raise SystemExit('precision test focus patch target not found')
 test_path.write_text(test_text.replace(before_test, after_test, 1), encoding='utf-8')
@@ -38,4 +38,4 @@ for before, after, label in patches:
         raise SystemExit(f'{label} patch target not found')
     app = app.replace(before, after, 1)
 app_path.write_text(app, encoding='utf-8')
-print('Canvas focus behavior and precision browser setup corrected.')
+print('Canvas focus behavior and transformed-point browser setup corrected.')
