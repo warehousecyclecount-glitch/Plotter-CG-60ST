@@ -72,6 +72,27 @@ test('frame-only design is valid and receives placements', () => {
   assert.equal(M.validateProject(p).ok, true);
 });
 
+test('frame-first design can receive text later without moving existing frames', () => {
+  const p = M.createProject();
+  const { design, frame } = M.addFrameDesign(p, { w:300, h:80, qty:3 });
+  const before = p.placements
+    .filter(x => x.designId === design.id)
+    .map(x => ({ copy:x.copy, frame:JSON.parse(JSON.stringify(x.transforms[frame.id])) }));
+
+  const text = M.createTextObject(p, { text:'WAREHOUSE', w:180, h:40, fontFamily:'Arial', fontWeight:'700' });
+  M.attachObject(p, design.id, text.id);
+  M.ensurePlacements(p, design.id);
+
+  const after = p.placements.filter(x => x.designId === design.id);
+  assert.equal(after.length, 3);
+  after.forEach(pl => {
+    assert.ok(pl.transforms[text.id], `copy ${pl.copy} must receive a text transform`);
+    assert.deepEqual(pl.transforms[frame.id], before.find(x => x.copy === pl.copy).frame);
+  });
+  assert.equal(M.getTextObject(p, design.id).id, text.id);
+  assert.equal(M.validateProject(p).ok, true);
+});
+
 test('text design can receive a frame later', () => {
   const p = M.createProject();
   const { design, text } = M.addTextDesign(p, 'STORAGE', { w:180, h:40, padding:{x:8,y:6} });
