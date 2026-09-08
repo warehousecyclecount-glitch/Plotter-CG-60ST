@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/apply-v3-precision-phase.yml'
       - 'scripts/apply-v3-precision-phase.py'
+      - 'scripts/fix-v3-precision-test.py'
 
 permissions:
   contents: write
@@ -28,6 +29,9 @@ jobs:
 
       - name: Apply full precision phase
         run: python3 scripts/apply-v3-precision-phase.py
+
+      - name: Correct browser keyboard focus setup
+        run: python3 scripts/fix-v3-precision-test.py
 
       - name: Syntax checks
         run: |
@@ -65,6 +69,7 @@ jobs:
       - name: Remove temporary apply files
         run: |
           rm -f scripts/apply-v3-precision-phase.py
+          rm -f scripts/fix-v3-precision-test.py
           rm -f .github/workflows/apply-v3-precision-phase.yml
 
       - name: Commit verified precision phase
