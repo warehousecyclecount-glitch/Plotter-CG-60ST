@@ -48,7 +48,7 @@ js/app-v2.js
 
 SVG Export ปัจจุบันยังใช้ SVG `<text>` / `<tspan>` และยังไม่ได้ผ่าน Compatibility Gate กับ CorelDRAW สำหรับ requirement “เปิดแล้วแก้ข้อความต่อได้อย่างแน่นอน” ดังนั้นยังไม่ถือเป็น Cut Ready Path/Curve
 
-## V3 Foundation
+## V3 Development
 
 งาน V3 พัฒนาใน branch:
 
@@ -56,7 +56,7 @@ SVG Export ปัจจุบันยังใช้ SVG `<text>` / `<tspan>` �
 v3-foundation
 ```
 
-รอบ Phase 0 + Phase 1 มีเฉพาะ foundation และยังไม่เปลี่ยน UI production
+### Phase 0 + Phase 1 — Foundation
 
 เพิ่ม:
 
@@ -78,7 +78,7 @@ Project
 └── Placements
 ```
 
-จุดประสงค์คือรองรับได้อย่างถูกต้องทั้ง:
+รองรับโครงสร้างได้ถูกต้องทั้ง:
 - Text only
 - Frame only
 - Text + Frame
@@ -86,15 +86,40 @@ Project
 
 มี migration layer สำหรับแปลง state จาก V2 → V3 และ adapter V3 → V2 สำหรับ regression/parity test ระหว่างช่วงเปลี่ยนระบบ
 
-## Test
+### Integration Gate — V3 Editor Preview
 
-Model test รันด้วย Node:
+เพิ่ม:
+
+```text
+v3-preview.html
+js/app-v3.js
+docs/V3-INTEGRATION.md
+```
+
+`v3-preview.html` ใช้ UI เดิม แต่เปลี่ยนแกนข้อมูลภายในเป็น Project V3 โดยตรง
+
+หลักการสำคัญ:
+
+- `state.project` เป็น Source of Truth
+- Text ใช้ `TextObject`
+- Frame เดิมถูกเก็บเป็น `FrameObject` จริง
+- Quantity อยู่ระดับ `Design`
+- ตำแหน่ง/Rotation อยู่ใน `Placement.transforms`
+- Layers เดิม map กับ `Design`
+- Undo/Redo snapshot Project V3
+- Export อ่าน geometry จาก Project V3
+
+รอบนี้ยัง **ไม่เปิด Frame-only UI** และยัง **ไม่เปลี่ยน production `index.html`** เพื่อแยกความเสี่ยงของ integration ออกจาก feature ใหม่
+
+## Test / Verification
+
+Model test:
 
 ```bash
 node tests/model-v3.test.js
 ```
 
-ครอบคลุม:
+Model V3 tests ที่รันใน Phase 1 ครอบคลุม:
 - schema/defaults
 - V2 → V3 migration
 - text + frame แยกเป็น object จริง
@@ -104,13 +129,20 @@ node tests/model-v3.test.js
 - quantity โดยไม่ทำตำแหน่งเดิมหาย
 - validation ของ reference ที่เสีย
 
+Integration ปัจจุบัน:
+- `app-v3.js` ผ่าน JavaScript syntax check
+- V3 Preview ถูกแยกจาก Production
+- Browser regression แบบ interactive ยังต้องทดสอบก่อน Promote
+
+ดู checklist และ promotion gate ที่ `docs/V3-INTEGRATION.md`
+
 ## Development rule
 
 ห้ามสลับ production runtime จาก V2 ไป V3 จนกว่า migration/integration regression จะผ่านก่อน
 
-ลำดับงานต่อจาก foundation:
+ลำดับงานต่อจาก Integration Gate:
 
-1. Integrate V3 model เข้ากับ editor โดยรักษาพฤติกรรม V2
+1. ทดสอบ V3 Preview regression ครบ
 2. เพิ่ม Frame object แบบอิสระใน UI
 3. ทำ Text + Frame workflow / “ชุด”
 4. Snap / Position controls
@@ -120,4 +152,10 @@ node tests/model-v3.test.js
 8. Preflight
 9. Generate Standalone จาก source เดียว
 
-รายละเอียด safety baseline และ invariants ดูที่ `docs/V3-BASELINE.md` และ `docs/V3-DATA-MODEL.md`
+รายละเอียดดูที่:
+
+```text
+docs/V3-BASELINE.md
+docs/V3-DATA-MODEL.md
+docs/V3-INTEGRATION.md
+```
