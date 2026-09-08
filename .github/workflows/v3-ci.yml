@@ -33,7 +33,41 @@ jobs:
         run: |
           grep -q 'js/model-v3.js' v3-preview.html
           grep -q 'js/app-v3.js' v3-preview.html
+          grep -q 'css/v3-preview.css' v3-preview.html
           if grep -q 'js/app-v2.js' v3-preview.html; then
             echo 'v3-preview.html must not load app-v2.js'
             exit 1
           fi
+
+  browser-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright test runner
+        run: npm install --no-save @playwright/test@1.55.0
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/v3-http.log 2>&1 &
+          echo $! > /tmp/v3-http.pid
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:4173/v3-preview.html >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/v3-http.log
+          exit 1
+
+      - name: Run real-browser frame-first smoke test
+        run: npx playwright test tests/v3-browser-smoke.spec.js --project=chromium --reporter=line
