@@ -41,6 +41,46 @@
     return { x: cx - halfW, y: cy - halfH, w: halfW * 2, h: halfH * 2 };
   }
 
+  function cornerLocal(w, h, corner) {
+    if (corner === 'nw') return { x:0, y:0 };
+    if (corner === 'ne') return { x:w, y:0 };
+    if (corner === 'sw') return { x:0, y:h };
+    return { x:w, y:h };
+  }
+
+  function oppositeCorner(corner) {
+    return ({ nw:'se', ne:'sw', sw:'ne', se:'nw' })[corner] || 'nw';
+  }
+
+  function getObjectCornerWorld(object, transform, corner) {
+    const w = finite(object?.size?.w);
+    const h = finite(object?.size?.h);
+    const x = finite(transform?.x);
+    const y = finite(transform?.y);
+    const local = cornerLocal(w, h, corner);
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const dx = local.x - w / 2;
+    const dy = local.y - h / 2;
+    const a = rad(transform?.rotation);
+    return {
+      x: cx + dx * Math.cos(a) - dy * Math.sin(a),
+      y: cy + dx * Math.sin(a) + dy * Math.cos(a)
+    };
+  }
+
+  function topLeftForFixedCorner(worldPoint, newW, newH, rotation, fixedCorner) {
+    const local = cornerLocal(newW, newH, fixedCorner);
+    const dx = local.x - newW / 2;
+    const dy = local.y - newH / 2;
+    const a = rad(rotation);
+    const rotatedX = dx * Math.cos(a) - dy * Math.sin(a);
+    const rotatedY = dx * Math.sin(a) + dy * Math.cos(a);
+    const cx = worldPoint.x - rotatedX;
+    const cy = worldPoint.y - rotatedY;
+    return { x:cx-newW/2, y:cy-newH/2 };
+  }
+
   function getPlacementBounds(project, placementId) {
     const { placement, design } = placementAndDesign(project, placementId);
     const objects = M.getObjectsForDesign(project, design.id).filter(o => o.visible !== false);
@@ -105,6 +145,39 @@
     return placement;
   }
 
+  function resizeSharedObjectFromCorner(project, designId, objectId, newWidth, newHeight, draggedCorner) {
+    const design = M.getDesign(project, designId);
+    const object = M.getObject(project, objectId);
+    if (!design) throw new Error(`Unknown design: ${designId}`);
+    if (!object || !design.objectIds.includes(objectId)) throw new Error(`Object ${objectId} does not belong to design ${designId}`);
+    if (!['nw','ne','sw','se'].includes(draggedCorner)) throw new Error(`Unsupported resize corner: ${draggedCorner}`);
+
+    const newW = Math.max(0.001, finite(newWidth, object.size.w));
+    const newH = Math.max(0.001, finite(newHeight, object.size.h));
+    const fixedCorner = oppositeCorner(draggedCorner);
+    const placements = project.placements.filter(p => p.designId === designId);
+    const anchors = placements.map(placement => {
+      const t = M.ensureTransform(placement, object.id, { x:0, y:0, rotation:0 });
+      return {
+        placement,
+        rotation: normalizeRotation(t.rotation),
+        world: getObjectCornerWorld(object, t, fixedCorner)
+      };
+    });
+
+    object.size.w = newW;
+    object.size.h = newH;
+    anchors.forEach(({ placement, rotation, world }) => {
+      const t = M.ensureTransform(placement, object.id, { x:0, y:0, rotation });
+      const topLeft = topLeftForFixedCorner(world, newW, newH, rotation, fixedCorner);
+      t.x = topLeft.x;
+      t.y = topLeft.y;
+      t.rotation = rotation;
+    });
+    markUpdated(project);
+    return object;
+  }
+
   function copyPlacementGeometry(project, sourcePlacementId, targetPlacementId, options = {}) {
     const source = M.getPlacement(project, sourcePlacementId);
     const target = M.getPlacement(project, targetPlacementId);
@@ -152,10 +225,12 @@
 
   return Object.freeze({
     rotatedObjectBounds,
+    getObjectCornerWorld,
     getPlacementBounds,
     translatePlacement,
     movePlacementBoundsTo,
     rotatePlacement,
+    resizeSharedObjectFromCorner,
     copyPlacementGeometry,
     centerTextInFrame,
     normalizeRotation
