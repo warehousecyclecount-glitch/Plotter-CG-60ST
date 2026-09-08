@@ -20,6 +20,11 @@ function makeSign(qty = 1) {
   return { p, design, text, frame };
 }
 
+function almostEqualPoint(a, b, eps = 1e-8) {
+  assert.ok(Math.abs(a.x-b.x) < eps, `x differs: ${a.x} vs ${b.x}`);
+  assert.ok(Math.abs(a.y-b.y) < eps, `y differs: ${a.y} vs ${b.y}`);
+}
+
 test('translatePlacement moves every object by the same delta', () => {
   const { p, design, text, frame } = makeSign();
   const pl = p.placements.find(x => x.designId === design.id);
@@ -74,6 +79,23 @@ test('rotated bounds account for 90 degree object rotation', () => {
   assert.ok(Math.abs(b.h - 100) < 1e-9);
   assert.ok(Math.abs(b.cx - 60) < 1e-9);
   assert.ok(Math.abs(b.cy - 40) < 1e-9);
+});
+
+test('shared corner resize preserves the same opposite anchor on every quantity copy', () => {
+  const { p, design, frame } = makeSign(2);
+  const placements = p.placements.filter(x => x.designId === design.id).sort((a,b)=>a.copy-b.copy);
+  placements[0].transforms[frame.id] = { x:20, y:30, rotation:0 };
+  placements[1].transforms[frame.id] = { x:300, y:100, rotation:90 };
+
+  const anchorsBefore = placements.map(pl => Ops.getObjectCornerWorld(frame, pl.transforms[frame.id], 'se'));
+  Ops.resizeSharedObjectFromCorner(p, design.id, frame.id, 260, 110, 'nw');
+  const anchorsAfter = placements.map(pl => Ops.getObjectCornerWorld(frame, pl.transforms[frame.id], 'se'));
+
+  assert.deepEqual(frame.size, { w:260, h:110 });
+  almostEqualPoint(anchorsBefore[0], anchorsAfter[0]);
+  almostEqualPoint(anchorsBefore[1], anchorsAfter[1]);
+  assert.equal(placements[0].transforms[frame.id].rotation, 0);
+  assert.equal(placements[1].transforms[frame.id].rotation, 90);
 });
 
 test('copyPlacementGeometry preserves internal layout and adds one group offset', () => {
