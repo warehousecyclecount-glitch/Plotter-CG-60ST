@@ -23,11 +23,17 @@ jobs:
       - name: Syntax check model
         run: node --check js/model-v3.js
 
+      - name: Syntax check design operations
+        run: node --check js/design-ops-v3.js
+
       - name: Syntax check editor
         run: node --check js/app-v3.js
 
       - name: Run V3 model regression tests
         run: node tests/model-v3.test.js
+
+      - name: Run V3 design geometry tests
+        run: node tests/design-ops-v3.test.js
 
       - name: Verify preview runtime wiring
         run: |
