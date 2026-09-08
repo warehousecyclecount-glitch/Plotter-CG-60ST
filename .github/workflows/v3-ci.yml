@@ -38,6 +38,7 @@ jobs:
       - name: Verify preview runtime wiring
         run: |
           grep -q 'js/model-v3.js' v3-preview.html
+          grep -q 'js/design-ops-v3.js' v3-preview.html
           grep -q 'js/app-v3.js' v3-preview.html
           grep -q 'css/v3-preview.css' v3-preview.html
           if grep -q 'js/app-v2.js' v3-preview.html; then
@@ -75,5 +76,5 @@ jobs:
           cat /tmp/v3-http.log
           exit 1
 
-      - name: Run real-browser frame-first smoke test
-        run: npx playwright test tests/v3-browser-smoke.spec.js --reporter=line
+      - name: Run real-browser V3 smoke suite
+        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js --reporter=line --workers=1
