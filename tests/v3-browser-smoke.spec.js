@@ -48,7 +48,7 @@ test('frame-first workflow stays valid in the real browser editor', async ({ pag
   const afterDesign = snapshot.designs.find(d => d.id === frameDesign.id);
   frameObject = snapshot.objects.find(o => afterDesign.objectIds.includes(o.id) && o.type === 'frame');
   textObject = snapshot.objects.find(o => afterDesign.objectIds.includes(o.id) && o.type === 'text');
-  const placements = snapshot.placements.filter(p => p.designId === afterDesign.id);
+  let placements = snapshot.placements.filter(p => p.designId === afterDesign.id);
 
   expect(textObject).toBeTruthy();
   expect(frameObject.size).toEqual({ w: 300, h: 80 });
@@ -66,6 +66,12 @@ test('frame-first workflow stays valid in the real browser editor', async ({ pag
   }
 
   await expect(page.locator('#textEditorSection')).not.toHaveClass(/hidden/);
+
+  // Quantity copies can temporarily overlap before layout. Use the real workflow
+  // action rather than bypassing pointer hit-testing with force:true.
+  await page.click('#autoArrangeTopBtn');
+  snapshot = await page.evaluate(() => window.__StickerV3Diagnostics.getProject());
+  placements = snapshot.placements.filter(p => p.designId === afterDesign.id);
 
   const targetPlacement = placements[0];
   await page.locator(`.frame-shape[data-placement="${targetPlacement.id}"]`).click({ position: { x: 2, y: 2 } });
