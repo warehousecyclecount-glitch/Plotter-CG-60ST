@@ -22,6 +22,21 @@ if before_free not in test_text:
     raise SystemExit('precision free drag patch target not found')
 test_text = test_text.replace(before_free, after_free, 1)
 
+# The visual switch intentionally hides its raw checkbox input. Toggle the
+# checked property and dispatch the same change event the UI listens to; this
+# tests Snap behavior without coupling the test to the switch skin CSS.
+before_snap_on = "  await page.locator('#snapEnabled').check({ force:true });"
+after_snap_on = """  await page.evaluate(() => {\n    const el = document.getElementById('snapEnabled');\n    el.checked = true;\n    el.dispatchEvent(new Event('change', { bubbles:true }));\n  });"""
+if before_snap_on not in test_text:
+    raise SystemExit('snap enabled test patch target not found')
+test_text = test_text.replace(before_snap_on, after_snap_on, 1)
+
+before_snap_off = "  await page.locator('#snapEnabled').uncheck({ force:true });"
+after_snap_off = """  await page.evaluate(() => {\n    const el = document.getElementById('snapEnabled');\n    el.checked = false;\n    el.dispatchEvent(new Event('change', { bubbles:true }));\n  });"""
+if before_snap_off not in test_text:
+    raise SystemExit('snap disabled test patch target not found')
+test_text = test_text.replace(before_snap_off, after_snap_off, 1)
+
 test_path.write_text(test_text, encoding='utf-8')
 
 # Canvas pointer handlers call preventDefault(), so a previously focused input
