@@ -122,3 +122,19 @@ __StickerV3Diagnostics.getProject()
 5. ไม่มี blocker bug
 
 เมื่อผ่านทั้งหมดจึงค่อยเปิด Phase ถัดไป: Frame Object แบบอิสระใน UI
+
+
+## Precision / Snap phase
+
+V3 Preview เพิ่มเครื่องมือความแม่นยำโดยไม่เปลี่ยน Production `main`:
+
+- X / Y / W / H / Rotation สำหรับสิ่งที่เลือก
+- เมื่อเลือก Frame ที่มี Text: X / Y / Rotation ย้ายทั้งชุด แต่ W / H ปรับ Frame เท่านั้น
+- Arrow = 1 mm, Shift+Arrow = 10 mm
+- Snap ไปที่ขอบ/กึ่งกลางกระดาษและชิ้นงานอื่น
+- Text ภายใน Frame สามารถ Snap กับ Frame เดียวกันได้
+- Alt ขณะลากปิด Snap ชั่วคราว
+- Snap guide เป็น UI-only state ไม่บันทึกลง Project schema
+- การกรอก W/H ใช้ shared-object resize ที่รักษา anchor ของทุก Quantity
+
+Regression gate ของ phase นี้ต้องรัน Model tests, Geometry tests และ Browser suite (`v3-browser-smoke`, `v3-design-behavior`, `v3-precision`) พร้อมกันก่อนถือว่าผ่าน

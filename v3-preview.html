@@ -138,7 +138,7 @@
             <button id="boldBtn" type="button" title="ตัวหนา (Ctrl+B)"><b>B</b></button>
             <button id="deleteBtn" type="button" class="danger-tool" title="ลบ (Delete / Backspace)">⌫ <span>Delete</span></button>
           </div>
-          <span class="shortcut-hint">Ctrl+D ทำสำเนา · Ctrl+V วางตรงเมาส์ · ดับเบิลคลิกข้อความเพื่อแก้</span>
+          <span class="shortcut-hint">Ctrl+D ทำสำเนา · Ctrl+V วางตรงเมาส์ · ลูกศรขยับ 1 mm · Shift+ลูกศร 10 mm</span>
         </div>
 
         <div class="canvas-toolbar">
@@ -156,7 +156,7 @@
         </div>
         <div class="canvas-footer">
           <span>ลากชิ้นงานออกนอกกระดาษได้เพื่อพักไว้ก่อนจัดวาง</span>
-          <span>ลากจุดมุมเพื่อปรับขนาด · ลากจุดสีม่วงเพื่อหมุน</span>
+          <span>ลากจุดมุมเพื่อปรับขนาด · ลากจุดสีม่วงเพื่อหมุน · กด Alt ค้างระหว่างลากเพื่อไม่ใช้ Snap</span>
           <span id="paperSummary">—</span>
         </div>
       </section>
@@ -181,6 +181,39 @@
             <strong>จัดลงกระดาษอัตโนมัติ</strong>
             <small>เรียงทุกชิ้นลงกระดาษโดยไม่ย่อขนาด</small>
             <button id="autoArrangeBtn" class="primary-btn full" type="button">จัดลงกระดาษอัตโนมัติ</button>
+          </div>
+          <div class="arrange-card precision-card">
+            <div class="precision-head">
+              <span class="arrange-label">ตำแหน่งและขนาด</span>
+              <small id="transformScope" class="precision-scope">ยังไม่ได้เลือกชิ้นงาน</small>
+            </div>
+            <div class="grid two precision-grid">
+              <label class="field">X
+                <div class="input-unit"><input id="positionX" type="number" step="0.1" disabled><span data-unit-label>mm</span></div>
+              </label>
+              <label class="field">Y
+                <div class="input-unit"><input id="positionY" type="number" step="0.1" disabled><span data-unit-label>mm</span></div>
+              </label>
+              <label class="field">W
+                <div class="input-unit"><input id="positionW" type="number" min="1" step="0.1" disabled><span data-unit-label>mm</span></div>
+              </label>
+              <label class="field">H
+                <div class="input-unit"><input id="positionH" type="number" min="1" step="0.1" disabled><span data-unit-label>mm</span></div>
+              </label>
+            </div>
+            <label class="field">หมุน
+              <div class="input-unit"><input id="positionRotation" type="number" step="1" disabled><span>°</span></div>
+            </label>
+            <small class="precision-help">ถ้าเลือกกรอบที่มีข้อความ X/Y/มุมจะขยับทั้งชุด ส่วน W/H ปรับเฉพาะขนาดกรอบ</small>
+          </div>
+          <div class="arrange-card snap-card">
+            <div class="switch-row minor">
+              <div><strong>Snap อัตโนมัติ</strong><small>ดูดเข้าขอบ กึ่งกลางกระดาษ และชิ้นงานอื่น</small></div>
+              <label class="switch"><input id="snapEnabled" type="checkbox" checked><span></span></label>
+            </div>
+            <label class="field">ระยะดูด
+              <div class="input-unit"><input id="snapDistance" type="number" min="0" step="0.1" value="3"><span data-unit-label>mm</span></div>
+            </label>
           </div>
           <div class="arrange-card">
             <span class="arrange-label">ชิ้นที่เลือก</span>
