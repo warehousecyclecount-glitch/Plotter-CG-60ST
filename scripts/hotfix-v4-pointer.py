@@ -1,8 +1,10 @@
 from pathlib import Path
 
-p = Path('js/app-v3.js')
-s = p.read_text(encoding='utf-8')
+app = Path('js/app-v3.js')
+s = app.read_text(encoding='utf-8')
 
+# The extra frame hit rectangle sits above normal SVG content and can intercept
+# clicks. The real frame is already an interactive SVG rect, so keep one target.
 old = ''';const hit=interactive?`<rect class="frame-hit" data-object="${o.id}" data-placement="${p.id}" x="${t.x}" y="${t.y}" width="${o.size.w}" height="${o.size.h}"/>`:'';return rotGroup(visible+hit,'''
 if old not in s:
     raise SystemExit('frame-hit runtime target not found')
@@ -13,39 +15,15 @@ s = s.replace(
     1,
 )
 
-marker = "  function startRotateSelection(e){"
-helper = """  function resolvePointerObject(e){
-    const direct=e.target.closest?.('.job-text,.frame-shape');
-    if(!direct)return null;
-    const placementId=direct.dataset.placement,p=placementById(placementId);
-    if(!p)return null;
-    const frame=frameFor(p.designId);
-    if(frame){
-      const tr=transformFor(p,frame),pt=svgPoint(e),cx=tr.x+frame.size.w/2,cy=tr.y+frame.size.h/2,local=tr.rotation?localPoint(pt,cx,cy,tr.rotation):pt,m=E.svg.getScreenCTM(),scale=m?Math.max(.001,Math.hypot(m.a,m.b)):1,tol=7/scale;
-      const inside=local.x>=tr.x-tol&&local.x<=tr.x+frame.size.w+tol&&local.y>=tr.y-tol&&local.y<=tr.y+frame.size.h+tol;
-      const edge=Math.min(Math.abs(local.x-tr.x),Math.abs(local.x-(tr.x+frame.size.w)),Math.abs(local.y-tr.y),Math.abs(local.y-(tr.y+frame.size.h)));
-      if(inside&&edge<=tol)return{placementId,objectId:frame.id};
-    }
-    return{placementId,objectId:direct.dataset.object};
-  }
-"""
-if marker not in s:
-    raise SystemExit('startRotateSelection marker not found')
-s = s.replace(marker, helper + marker, 1)
-
-old = "const target=e.target.closest?.('.job-text,.frame-shape');if(target){const pid=target.dataset.placement,oid=target.dataset.object;"
-new = "const hit=resolvePointerObject(e);if(hit){const pid=hit.placementId,oid=hit.objectId;"
-if old not in s:
-    raise SystemExit('context routing target not found')
-s = s.replace(old, new, 1)
-
-old = "E.svg.querySelectorAll('.job-text,.frame-shape').forEach(el=>el.addEventListener('pointerdown',e=>startMove(e,el.dataset.placement,el.dataset.object)));"
-new = "E.svg.querySelectorAll('.job-text,.frame-shape').forEach(el=>el.addEventListener('pointerdown',e=>{const hit=resolvePointerObject(e);if(hit)startMove(e,hit.placementId,hit.objectId);}));"
-if old not in s:
-    raise SystemExit('pointerdown routing target not found')
-s = s.replace(old, new, 1)
-
-p.write_text(s, encoding='utf-8')
+# Root cause from browser diagnostics: when a selected object is close to the
+# ruler, clamping the floating toolbar to y=46 moves the toolbar down on top of
+# the object. Choose below the selection whenever there is not enough room above.
+old_toolbar = """const rect=boxEl.getBoundingClientRect(),wr=E.workarea?.getBoundingClientRect();if(!wr)return;E.floatingToolbar.classList.remove('hidden');E.floatingToolbar.style.left=Math.max(90,Math.min(wr.width-90,rect.left-wr.left+rect.width/2))+'px';E.floatingToolbar.style.top=Math.max(46,rect.top-wr.top-8)+'px';}"""
+new_toolbar = """const rect=boxEl.getBoundingClientRect(),wr=E.workarea?.getBoundingClientRect();if(!wr)return;E.floatingToolbar.classList.remove('hidden');const toolbarRect=E.floatingToolbar.getBoundingClientRect(),gap=8,rulerGuard=28,aboveTop=rect.top-wr.top-gap,belowTop=rect.bottom-wr.top+gap,canAbove=rect.top-wr.top-toolbarRect.height-gap>=rulerGuard,canBelow=belowTop+toolbarRect.height<=wr.height-4,useBelow=!canAbove&&canBelow;E.floatingToolbar.classList.toggle('below',useBelow);E.floatingToolbar.style.left=Math.max(toolbarRect.width/2+6,Math.min(wr.width-toolbarRect.width/2-6,rect.left-wr.left+rect.width/2))+'px';E.floatingToolbar.style.top=(useBelow?belowTop:Math.max(rulerGuard+toolbarRect.height,aboveTop))+'px';}"""
+if old_toolbar not in s:
+    raise SystemExit('floating toolbar placement target not found')
+s = s.replace(old_toolbar, new_toolbar, 1)
+app.write_text(s, encoding='utf-8')
 
 css = Path('css/canvas-v4.css')
 c = css.read_text(encoding='utf-8')
@@ -53,6 +31,10 @@ c = c.replace(
     '\n.frame-hit{fill:none;stroke:transparent;stroke-width:10;pointer-events:stroke;cursor:move;vector-effect:non-scaling-stroke}\n',
     '\n',
 )
+if '.frame-shape{pointer-events:all}' not in c:
+    c += '\n.frame-shape{pointer-events:all}\n'
+if '.floating-toolbar.below{' not in c:
+    c += '\n.floating-toolbar.below{transform:translate(-50%,0)}\n'
 css.write_text(c, encoding='utf-8')
 
-print('Applied deterministic frame-edge pointer routing hotfix')
+print('Applied V4 floating-toolbar hit-area hotfix')
