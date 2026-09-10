@@ -7,6 +7,10 @@ on:
     paths:
       - '.github/workflows/apply-v3-ux-redesign.yml'
       - 'scripts/apply-v3-ux-redesign.py'
+      - 'tests/v3-export.spec.js'
+      - 'tests/v3-persistence.spec.js'
+      - 'tests/v3-cutready.spec.js'
+      - 'tests/v3-standalone.spec.js'
 
 permissions:
   contents: write
