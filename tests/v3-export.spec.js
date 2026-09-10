@@ -6,8 +6,10 @@ test('preflight and Corel-editable SVG keep export behavior explicit', async ({ 
   page.on('pageerror', err => errors.push(String(err)));
   await page.goto('http://127.0.0.1:4173/v3-preview.html');
   await page.waitForFunction(() => Boolean(window.__StickerV3Diagnostics));
+  await page.click('#canvasAddTextBtn');
 
   await expect(page.locator('#preflightBtn')).toBeVisible();
+  await page.click('#exportMenuBtn');
   await expect(page.locator('#exportEditableBtn')).toBeVisible();
 
   const [editableDownload] = await Promise.all([
@@ -25,6 +27,7 @@ test('preflight and Corel-editable SVG keep export behavior explicit', async ({ 
   expect(editable).toContain('width="600mm"');
   expect(editable).toContain('height="300mm"');
 
+  await page.click('#exportMenuBtn');
   const [standardDownload] = await Promise.all([
     page.waitForEvent('download'),
     page.click('#exportBtn')
