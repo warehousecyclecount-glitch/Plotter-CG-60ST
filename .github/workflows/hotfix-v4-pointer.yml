@@ -25,23 +25,25 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Apply pointer hit-target fix
+      - name: Make frame itself the deterministic hit target
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p = Path('js/app-v3.js')
           s = p.read_text(encoding='utf-8')
-          old = 'return rotGroup(visible+hit,t.rotation,t.x+o.size.w/2,t.y+o.size.h/2);'
-          new = 'return rotGroup(hit+visible,t.rotation,t.x+o.size.w/2,t.y+o.size.h/2);'
+          old = ''';const hit=interactive?`<rect class="frame-hit" data-object="${o.id}" data-placement="${p.id}" x="${t.x}" y="${t.y}" width="${o.size.w}" height="${o.size.h}"/>`:'';return rotGroup(visible+hit,'''
           if old not in s:
-              raise SystemExit('frame hit ordering target not found')
-          s = s.replace(old, new, 1)
-          old = "const target=e.target.closest?.('.job-text,.frame-shape');"
-          new = "const target=e.target.closest?.('.job-text,.frame-shape,.frame-hit');"
-          if old not in s:
-              raise SystemExit('context target selector not found')
-          s = s.replace(old, new, 1)
+              raise SystemExit('frame-hit runtime target not found')
+          s = s.replace(old, ';return rotGroup(visible,', 1)
+          s = s.replace("E.svg.querySelectorAll('.job-text,.frame-shape,.frame-hit').forEach", "E.svg.querySelectorAll('.job-text,.frame-shape').forEach", 1)
           p.write_text(s, encoding='utf-8')
+
+          css = Path('css/canvas-v4.css')
+          c = css.read_text(encoding='utf-8')
+          c = c.replace('\n.frame-hit{fill:none;stroke:transparent;stroke-width:10;pointer-events:stroke;cursor:move;vector-effect:non-scaling-stroke}\n', '\n')
+          if '.frame-shape{pointer-events:all}' not in c:
+              c += '\n.frame-shape{pointer-events:all}\n'
+          css.write_text(c, encoding='utf-8')
           PY
 
       - name: Rebuild standalone
@@ -79,10 +81,13 @@ jobs:
       - name: Run full production browser suite
         run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-cutready.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js tests/v3-ux-redesign.spec.js tests/v4-canvas-interactions.spec.js --reporter=line --workers=1
 
-      - name: Verify standalone contains hotfix
+      - name: Verify standalone contains same interaction code
         run: |
-          grep -q 'return rotGroup(hit+visible' StickerLayout-V3-Standalone.html
-          grep -q "job-text,.frame-shape,.frame-hit" StickerLayout-V3-Standalone.html
+          if grep -q 'class="frame-hit"' StickerLayout-V3-Standalone.html; then
+            echo 'Standalone still contains obsolete frame-hit target'
+            exit 1
+          fi
+          grep -q '.frame-shape{pointer-events:all}' StickerLayout-V3-Standalone.html
 
       - name: Cleanup test runtime
         run: |
@@ -93,6 +98,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add js/app-v3.js StickerLayout-V3-Standalone.html
-          git commit -m "fix: correct V4 frame pointer hit ordering [skip ci]"
+          git add js/app-v3.js css/canvas-v4.css StickerLayout-V3-Standalone.html
+          git commit -m "fix: make V4 frame selection deterministic [skip ci]"
           git push origin HEAD:v4-interaction-hotfix
