@@ -3,8 +3,10 @@ name: V3 Production CI
 on:
   push:
     branches:
+      - main
       - v3-foundation
       - v3-final
+      - v3-ux-redesign
   pull_request:
     branches:
       - main
@@ -31,6 +33,7 @@ jobs:
           node --check tests/v3-cutready.spec.js
           node --check tests/v3-persistence.spec.js
           node --check tests/v3-standalone.spec.js
+          node --check tests/v3-ux-redesign.spec.js
 
       - name: Run V3 model regression tests
         run: node tests/model-v3.test.js
@@ -47,13 +50,31 @@ jobs:
           grep -q 'js/design-ops-v3.js' v3-preview.html
           grep -q 'js/app-v3.js' v3-preview.html
           grep -q 'css/v3-preview.css' v3-preview.html
+          grep -q 'css/ux-redesign.css' v3-preview.html
           grep -q 'js/vendor/opentype.min.js' index.html
           grep -q 'js/model-v3.js' index.html
           grep -q 'js/design-ops-v3.js' index.html
           grep -q 'js/app-v3.js' index.html
-          grep -q 'exportCutReadyBtn' index.html
-          grep -q 'ไฟล์พร้อมตัด' index.html
+          grep -q 'css/ux-redesign.css' index.html
+          grep -q 'id="fileMenuBtn"' index.html
+          grep -q 'id="exportMenuBtn"' index.html
+          grep -q 'id="leftPanelResizer"' index.html
+          grep -q 'id="rightPanelResizer"' index.html
+          grep -q 'id="canvasStage"' index.html
+          grep -q 'id="fontPickerMenu"' index.html
           grep -q 'cutReadyPathExport:true' js/app-v3.js
+          grep -q 'uxRedesign:true' js/app-v3.js
+          grep -q 'middleMousePan:true' js/app-v3.js
+          grep -q 'fontHoverPreview:true' js/app-v3.js
+          grep -q 'emptyProject:true' js/app-v3.js
+          if grep -q 'WAREHOUSE' js/app-v3.js; then
+            echo 'Production runtime must not seed demo WAREHOUSE content'
+            exit 1
+          fi
+          if grep -q 'ต้องมีอย่างน้อย 1 ชิ้นงาน' js/app-v3.js; then
+            echo 'Production runtime must allow an empty project'
+            exit 1
+          fi
           if grep -q 'js/app-v2.js' v3-preview.html; then
             echo 'v3-preview.html must not load app-v2.js'
             exit 1
@@ -73,6 +94,7 @@ jobs:
           }
           grep -q 'ไฟล์พร้อมตัด' StickerLayout-V3-Standalone.html
           grep -q 'cutReadyPathExport:true' StickerLayout-V3-Standalone.html
+          grep -q 'uxRedesign:true' StickerLayout-V3-Standalone.html
           if grep -Eq 'src="js/|href="css/' StickerLayout-V3-Standalone.html; then
             echo 'Standalone still has external project CSS/JS dependency'
             exit 1
@@ -108,5 +130,5 @@ jobs:
           cat /tmp/v3-http.log
           exit 1
 
-      - name: Run full V3 final browser suite
-        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-cutready.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js --reporter=line --workers=1
+      - name: Run full V3 production browser suite
+        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-cutready.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js tests/v3-ux-redesign.spec.js --reporter=line --workers=1
