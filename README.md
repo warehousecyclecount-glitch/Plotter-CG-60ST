@@ -4,9 +4,9 @@
 
 ## Production
 
-`main` ยังใช้ V2 และยังไม่ถูกเปลี่ยน จนกว่าจะผ่านการทดสอบจริงกับ CorelDRAW / FineCut / CG-60ST
+`main` ใช้ V3 เป็น Production runtime แล้ว โดย GitHub Pages เปิดจาก `index.html`
 
-V3 Release Candidate อยู่ที่ branch `v3-foundation` และหน้า `v3-preview.html`
+branch `v3-foundation` ยังคงเป็นสายพัฒนาสำหรับตรวจสอบย้อนหลังและการแก้ไขต่อไป
 
 ## V3 ที่ทำเสร็จแล้ว
 
@@ -60,4 +60,4 @@ CI ของ `v3-foundation` ตรวจ:
 
 Checklist อยู่ที่ `docs/V3-USER-ACCEPTANCE.md`
 
-จนกว่าจะผ่าน checklist นี้ จะยังไม่ Promote V3 เข้า `main`
+V3 ถูก Deploy เข้า `main` แล้ว แต่ Compatibility กับ CorelDRAW / FineCut / CG-60ST จริงยังต้องยืนยันจากเครื่องใช้งานจริงตาม checklist นี้

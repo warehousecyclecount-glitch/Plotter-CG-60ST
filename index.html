@@ -7,6 +7,7 @@
   <title>Sticker Layout · Mimaki CG-60ST</title>
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/enhancements.css">
+  <link rel="stylesheet" href="css/v3-preview.css">
 </head>
 <body>
   <div class="app-shell">
@@ -25,23 +26,37 @@
         </div>
       </div>
       <div class="top-actions">
+        <div class="project-actions" aria-label="จัดการไฟล์งาน">
+          <button id="newProjectBtn" type="button" title="สร้างงานใหม่">＋ งานใหม่</button>
+          <button id="openProjectBtn" type="button" title="เปิดไฟล์งาน">เปิดงาน</button>
+          <button id="saveProjectBtn" type="button" title="บันทึกไฟล์งาน (Ctrl+S)">บันทึกงาน</button>
+          <input id="openProjectInput" type="file" accept=".json,.cg60st.json,application/json" hidden>
+          <span id="autosaveStatus" class="autosave-status">Autosave พร้อม</span>
+        </div>
         <div class="unit-switch" aria-label="หน่วยวัด">
           <button type="button" data-unit="mm" class="active">mm</button>
           <button type="button" data-unit="cm">cm</button>
         </div>
-        <button id="exportBtn" class="primary-btn" type="button">Export SVG 1:1</button>
+        <div class="export-actions">
+          <button id="preflightBtn" class="export-check-btn" type="button">ตรวจงาน</button>
+          <button id="exportEditableBtn" class="export-editable-btn" type="button">ส่งไปแก้ต่อใน Corel</button>
+          <button id="exportBtn" class="primary-btn" type="button">SVG 1:1</button>
+        </div>
       </div>
     </header>
 
     <main class="workspace">
       <aside class="left-panel panel">
         <div class="panel-head">
-          <div><span class="eyebrow">SELECTED ITEM</span><h2 id="editorTitle">ข้อความ 1</h2></div>
-          <button id="addItemBtn" class="add-btn" type="button">+ เพิ่มข้อความ</button>
+          <div><span class="eyebrow">สิ่งที่เลือก</span><h2 id="editorTitle">ข้อความ 1</h2></div>
+          <div class="quick-add" aria-label="เพิ่มชิ้นงาน">
+            <button id="addItemBtn" class="add-btn" type="button">+ ข้อความ</button>
+            <button id="addFrameBtn" class="add-btn frame-add" type="button">▭ กรอบ</button>
+          </div>
         </div>
 
         <div class="editor-scroll">
-          <section class="field-section">
+          <section id="textEditorSection" class="field-section">
             <label class="field full">ข้อความ
               <textarea id="jobText" class="text-input" rows="3" placeholder="ข้อความที่ต้องการตัด" spellcheck="false">WAREHOUSE</textarea>
             </label>
@@ -69,16 +84,20 @@
                 <select id="fontWeight"><option value="400">ปกติ</option><option value="700">หนา</option></select>
               </label>
             </div>
-            <label class="field">จำนวน
-              <input id="quantity" type="number" min="1" max="200" step="1" value="1">
-            </label>
           </section>
 
           <section class="field-section">
-            <div class="switch-row">
+            <div id="frameToggleRow" class="switch-row">
               <div><strong>ตีกรอบ</strong><small>เพิ่มเส้นกรอบรอบข้อความ</small></div>
               <label class="switch"><input id="frameEnabled" type="checkbox"><span></span></label>
             </div>
+
+            <div id="frameOnlyIntro" class="frame-only-intro hidden">
+              <strong>กรอบเปล่า</strong>
+              <small>กำหนดขนาดกรอบก่อนได้ แล้วค่อยใส่ข้อความภายหลัง</small>
+              <button id="addTextToFrameBtn" type="button">+ ใส่ข้อความในกรอบ</button>
+            </div>
+
             <div id="frameFields" class="frame-fields hidden">
               <div class="grid two">
                 <label class="field">กรอบกว้าง
@@ -88,7 +107,7 @@
                   <div class="input-unit"><input id="frameHeight" type="number" min="1" step="0.1"><span data-unit-label>mm</span></div>
                 </label>
               </div>
-              <div class="grid two">
+              <div id="framePaddingFields" class="grid two">
                 <label class="field">ห่างซ้าย-ขวา
                   <div class="input-unit"><input id="paddingX" type="number" min="0" step="0.1"><span data-unit-label>mm</span></div>
                 </label>
@@ -96,8 +115,15 @@
                   <div class="input-unit"><input id="paddingY" type="number" min="0" step="0.1"><span data-unit-label>mm</span></div>
                 </label>
               </div>
+              <button id="centerTextBtn" class="secondary-btn full" type="button">จัดข้อความกลางกรอบ</button>
               <button id="fitFrameBtn" class="secondary-btn full" type="button">ให้กรอบพอดีกับตัวอักษร</button>
             </div>
+          </section>
+
+          <section class="field-section">
+            <label class="field">จำนวน
+              <input id="quantity" type="number" min="1" max="200" step="1" value="1">
+            </label>
           </section>
 
           <section class="field-section compact">
@@ -123,50 +149,82 @@
             <button id="boldBtn" type="button" title="ตัวหนา (Ctrl+B)"><b>B</b></button>
             <button id="deleteBtn" type="button" class="danger-tool" title="ลบ (Delete / Backspace)">⌫ <span>Delete</span></button>
           </div>
-          <span class="shortcut-hint">Ctrl+D Duplicate · Ctrl+V วางตรงเมาส์ · ดับเบิลคลิกเพื่อแก้ข้อความ</span>
+          <span class="shortcut-hint">Ctrl+D ทำสำเนา · Ctrl+V วางตรงเมาส์ · ลูกศรขยับ 1 mm · Shift+ลูกศร 10 mm</span>
         </div>
 
         <div class="canvas-toolbar">
           <div class="canvas-status">
             <span id="statusBadge" class="status ok">พร้อม</span>
-            <span id="selectionLabel">เลือกข้อความจาก Preview หรือ Layers</span>
+            <span id="selectionLabel">เลือกชิ้นงานจากพื้นที่ทำงานหรือรายการวัตถุ</span>
           </div>
           <div class="toolbar-actions">
-            <button id="autoArrangeTopBtn" type="button">จัดให้พอดีกระดาษ</button>
+            <button id="autoArrangeTopBtn" type="button">จัดลงกระดาษอัตโนมัติ</button>
             <button id="resetViewBtn" type="button">พอดีหน้าจอ</button>
           </div>
         </div>
         <div id="canvasViewport" class="canvas-viewport">
-          <svg id="previewSvg" xmlns="http://www.w3.org/2000/svg" aria-label="Preview กระดาษและข้อความ"></svg>
+          <svg id="previewSvg" xmlns="http://www.w3.org/2000/svg" aria-label="Preview กระดาษและชิ้นงาน"></svg>
         </div>
         <div class="canvas-footer">
-          <span>ลากข้อความออกนอกกระดาษได้เพื่อช่วยจัดวาง</span>
-          <span>ลากจุดมุมเพื่อปรับขนาด · ลากจุดสีม่วงเพื่อหมุน</span>
+          <span>ลากชิ้นงานออกนอกกระดาษได้เพื่อพักไว้ก่อนจัดวาง</span>
+          <span>ลากจุดมุมเพื่อปรับขนาด · ลากจุดสีม่วงเพื่อหมุน · กด Alt ค้างระหว่างลากเพื่อไม่ใช้ Snap</span>
           <span id="paperSummary">—</span>
         </div>
       </section>
 
       <aside class="right-panel panel">
-        <div class="right-title-row"><h2>Position</h2><span class="panel-grip">⋮⋮</span></div>
+        <div class="right-title-row"><h2>จัดการงาน</h2><span class="panel-grip">⋮⋮</span></div>
         <div class="tabs">
-          <button id="arrangeTab" type="button">Arrange</button>
-          <button id="layersTab" type="button" class="active">Layers</button>
+          <button id="arrangeTab" type="button">จัดวาง</button>
+          <button id="layersTab" type="button" class="active">วัตถุ</button>
         </div>
 
         <div id="layersView" class="right-view">
-          <div class="segmented">
-            <button type="button" class="active">All</button>
-            <button type="button" disabled>Overlapping</button>
-          </div>
           <div id="layerList" class="layer-list"></div>
-          <button id="addLayerBtn" class="add-layer-btn" type="button">+ เพิ่มข้อความ</button>
+          <div class="layer-add-row">
+            <button id="addLayerBtn" class="add-layer-btn" type="button">+ ข้อความ</button>
+            <button id="addLayerFrameBtn" class="add-layer-btn frame-add" type="button">▭ กรอบ</button>
+          </div>
         </div>
 
         <div id="arrangeView" class="right-view hidden">
           <div class="arrange-card hero-arrange">
-            <strong>จัด Layout อัตโนมัติ</strong>
+            <strong>จัดลงกระดาษอัตโนมัติ</strong>
             <small>เรียงทุกชิ้นลงกระดาษโดยไม่ย่อขนาด</small>
-            <button id="autoArrangeBtn" class="primary-btn full" type="button">จัดให้พอดีกระดาษ</button>
+            <button id="autoArrangeBtn" class="primary-btn full" type="button">จัดลงกระดาษอัตโนมัติ</button>
+          </div>
+          <div class="arrange-card precision-card">
+            <div class="precision-head">
+              <span class="arrange-label">ตำแหน่งและขนาด</span>
+              <small id="transformScope" class="precision-scope">ยังไม่ได้เลือกชิ้นงาน</small>
+            </div>
+            <div class="grid two precision-grid">
+              <label class="field">X
+                <div class="input-unit"><input id="positionX" type="number" step="0.1" disabled><span data-unit-label>mm</span></div>
+              </label>
+              <label class="field">Y
+                <div class="input-unit"><input id="positionY" type="number" step="0.1" disabled><span data-unit-label>mm</span></div>
+              </label>
+              <label class="field">W
+                <div class="input-unit"><input id="positionW" type="number" min="1" step="0.1" disabled><span data-unit-label>mm</span></div>
+              </label>
+              <label class="field">H
+                <div class="input-unit"><input id="positionH" type="number" min="1" step="0.1" disabled><span data-unit-label>mm</span></div>
+              </label>
+            </div>
+            <label class="field">หมุน
+              <div class="input-unit"><input id="positionRotation" type="number" step="1" disabled><span>°</span></div>
+            </label>
+            <small class="precision-help">ถ้าเลือกกรอบที่มีข้อความ X/Y/มุมจะขยับทั้งชุด ส่วน W/H ปรับเฉพาะขนาดกรอบ</small>
+          </div>
+          <div class="arrange-card snap-card">
+            <div class="switch-row minor">
+              <div><strong>Snap อัตโนมัติ</strong><small>ดูดเข้าขอบ กึ่งกลางกระดาษ และชิ้นงานอื่น</small></div>
+              <label class="switch"><input id="snapEnabled" type="checkbox" checked><span></span></label>
+            </div>
+            <label class="field">ระยะดูด
+              <div class="input-unit"><input id="snapDistance" type="number" min="0" step="0.1" value="3"><span data-unit-label>mm</span></div>
+            </label>
           </div>
           <div class="arrange-card">
             <span class="arrange-label">ชิ้นที่เลือก</span>
@@ -195,7 +253,25 @@
     </main>
   </div>
 
+  <div id="preflightPanel" class="preflight-panel hidden" role="dialog" aria-modal="true" aria-labelledby="preflightTitle">
+    <div class="preflight-card">
+      <div class="preflight-head">
+        <div><span class="eyebrow">Preflight</span><h2 id="preflightTitle">ตรวจงานก่อน Export</h2></div>
+        <button id="preflightCloseBtn" class="preflight-close" type="button" aria-label="ปิด">×</button>
+      </div>
+      <div id="preflightSummary" class="preflight-summary ok">พร้อม Export</div>
+      <ul id="preflightList" class="preflight-list"></ul>
+      <div class="preflight-actions">
+        <button id="calibrationBtn" class="export-check-btn" type="button">ไฟล์ทดสอบ 100 mm</button>
+        <button id="preflightEditableBtn" class="export-editable-btn" type="button">ส่งไปแก้ต่อใน Corel</button>
+        <button id="preflightExportBtn" class="primary-btn" type="button">SVG 1:1</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast hidden"></div>
-  <script src="js/app-v2.js"></script>
+  <script src="js/model-v3.js"></script>
+  <script src="js/design-ops-v3.js"></script>
+  <script src="js/app-v3.js"></script>
 </body>
 </html>
