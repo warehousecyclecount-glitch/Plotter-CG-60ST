@@ -4,7 +4,6 @@ const fs = require('fs');
 test('autosave can be explicitly recovered and project file roundtrip restores exact geometry', async ({ page }) => {
   const errors = [];
   page.on('pageerror', err => errors.push(String(err)));
-  await page.addInitScript(() => localStorage.clear());
   await page.goto('http://127.0.0.1:4173/v3-preview.html');
   await page.waitForFunction(() => Boolean(window.__StickerV3Diagnostics));
 
