@@ -1,161 +1,63 @@
 # CG-60ST Sticker Job Builder
 
-เว็บช่วยเตรียม Layout งานตัดสติ๊กเกอร์สำหรับ workflow ที่ใช้ **Mimaki CG-60ST** โดยให้เว็บรับผิดชอบการสร้าง/จัดวางงาน และใช้ CorelDRAW / FineCut เป็นขั้นตอนต่อก่อนส่งไปเครื่องตัด
+เว็บช่วยเตรียม Layout งานตัดสติ๊กเกอร์สำหรับ **Mimaki CG-60ST** โดยให้เว็บทำงานออกแบบ/จัดวางให้มากที่สุด แล้วใช้ CorelDRAW + FineCut เป็นขั้นตอนส่งต่อไปเครื่องตัด
 
-## Production runtime ปัจจุบัน
+## Production
 
-`main` ยังใช้ V2 และยังไม่ถูกเปลี่ยนโดยงาน V3
+`main` ยังใช้ V2 และยังไม่ถูกเปลี่ยน จนกว่าจะผ่านการทดสอบจริงกับ CorelDRAW / FineCut / CG-60ST
 
-ไฟล์ที่เป็น runtime ปัจจุบัน:
+V3 Release Candidate อยู่ที่ branch `v3-foundation` และหน้า `v3-preview.html`
 
-```text
-index.html
-css/app.css
-css/enhancements.css
-js/app-v2.js
-```
+## V3 ที่ทำเสร็จแล้ว
 
-`js/app.js` เป็น implementation เก่าที่ไม่ได้ถูก `index.html` เรียกใช้งานแล้ว
+- Text only / Frame only / Text + Frame
+- สร้างกรอบก่อน แล้วใส่ข้อความภายหลัง
+- Quantity ระดับชุดงาน
+- ลาก / Resize / Rotate / Undo / Redo / Copy / Paste / Duplicate / Delete
+- Double-click แก้ข้อความตรง Canvas
+- Layers + Arrange + Auto Arrange โดยไม่ย่อขนาด
+- X / Y / W / H / Rotation แบบกรอกตัวเลข
+- Arrow 1 mm / Shift+Arrow 10 mm
+- Snap ขอบ/กึ่งกลางกระดาษและชิ้นงานอื่น พร้อม Alt เพื่อปิด Snap ชั่วคราว
+- Preflight ตรวจโครงสร้าง, งานนอกกระดาษ, งานซ้อนกัน
+- Export `SVG 1:1` สำหรับ workflow เดิม
+- Export `ส่งไปแก้ต่อใน Corel` โดยคง SVG text และลด attribute ที่รบกวนการแก้ข้อความ
+- ไฟล์ Calibration 100×100 mm สำหรับเช็กสเกลจริงใน Corel
+- Save Project เป็น `.cg60st.json`
+- Open Project และรองรับ legacy V2 state ที่มี `items/placements`
+- Autosave + กู้คืนงานล่าสุดหลัง Reload
+- `Ctrl+S` บันทึก Project
+- Generated single-file `StickerLayout-V3-Standalone.html` จาก source V3 ชุดเดียว
 
-`StickerLayout-Standalone.html` เป็นไฟล์ใช้งานแบบ HTML ไฟล์เดียวสำหรับกรณีที่ไม่ต้องการโฟลเดอร์ `css/` และ `js/`
+## สิ่งที่ตั้งใจไม่ทำแบบเดาสุ่ม
 
-## ความสามารถของ V2 ปัจจุบัน
+V3 ยัง **ไม่เรียกไฟล์ข้อความว่า Cut Ready Curve/Path** เพราะ Browser ไม่สามารถดึง glyph outline ของ Arial/Tahoma/Verdana/Impact จาก system font ออกมาเป็น path ได้อย่างถูกต้องโดยไม่มี font outline source จริง และไม่ควรฝังไฟล์ฟอนต์ proprietary ลง repo
 
-- กำหนดขนาดกระดาษและสลับหน่วย mm / cm
-- หลายข้อความใน Canvas เดียว
-- ข้อความหลายบรรทัด
-- Font / Normal / Bold
-- กำหนด Width / Height / Quantity
-- กรอบแบบผูกกับข้อความ
-- ลากข้อความและกรอบ
-- Resize / Rotate
-- Double-click แก้ข้อความบน Canvas
-- Undo / Redo / Copy / Paste / Duplicate / Delete
-- Layers / Arrange
-- Auto Arrange โดยไม่ย่อชิ้นงานเอง
-- วางชิ้นงานนอกกระดาษเป็นพื้นที่พักได้
-- Export SVG 1:1
+ดังนั้น workflow ที่ปลอดภัยตอนนี้คือ:
 
-## ข้อจำกัดสำคัญของ V2
+1. ออกแบบ/จัด Layout ในเว็บ
+2. ใช้ `ส่งไปแก้ต่อใน Corel` ถ้าต้องแก้ข้อความต่อ
+3. ตรวจขนาดด้วย Calibration 100 mm
+4. Convert to Curves ใน Corel ก่อน FineCut เมื่อจำเป็น
+5. FineCut → Mimaki CG-60ST
 
-โครงสร้างข้อมูล V2 ยังเป็นแบบ **Text-first**: กรอบเป็น property ของข้อความ และ placement หนึ่งตัวเก็บทั้งตำแหน่งข้อความกับตำแหน่งกรอบไว้ด้วยกัน
+## Verification อัตโนมัติ
 
-จึงยังไม่เหมาะกับ workflow ที่ต้องการ:
-- สร้างกรอบก่อนข้อความ
-- มีกรอบอย่างเดียว
-- รวมข้อความ + กรอบเป็นหนึ่งชุดงานอย่างเป็นระบบ
-- ให้ Quantity / Auto Arrange ทำงานระดับชุดงาน
+CI ของ `v3-foundation` ตรวจ:
 
-SVG Export ปัจจุบันยังใช้ SVG `<text>` / `<tspan>` และยังไม่ได้ผ่าน Compatibility Gate กับ CorelDRAW สำหรับ requirement “เปิดแล้วแก้ข้อความต่อได้อย่างแน่นอน” ดังนั้นยังไม่ถือเป็น Cut Ready Path/Curve
+- JavaScript syntax
+- Model V3 regression
+- Geometry / set behavior
+- Frame-first browser workflow
+- Precision / Snap
+- Corel-editable SVG structure + Preflight
+- Save/Open + Autosave
+- Generated Standalone แบบไฟล์เดียว
 
-## V3 Development
+## User Acceptance ที่ยังต้องทดสอบจริง
 
-งาน V3 พัฒนาใน branch:
+สิ่งเดียวที่ automated browser test ยืนยันแทนเครื่องบริษัทไม่ได้คือพฤติกรรมของ **CorelDRAW / FineCut / CG-60ST จริง**
 
-```text
-v3-foundation
-```
+Checklist อยู่ที่ `docs/V3-USER-ACCEPTANCE.md`
 
-### Phase 0 + Phase 1 — Foundation
-
-เพิ่ม:
-
-```text
-js/model-v3.js
-tests/model-v3.test.js
-docs/V3-BASELINE.md
-docs/V3-DATA-MODEL.md
-```
-
-Data Model V3 แยกเป็น:
-
-```text
-Project
-├── Objects
-│   ├── Text
-│   └── Frame
-├── Designs
-└── Placements
-```
-
-รองรับโครงสร้างได้ถูกต้องทั้ง:
-- Text only
-- Frame only
-- Text + Frame
-- หลาย Placement ของ Design เดียว
-
-มี migration layer สำหรับแปลง state จาก V2 → V3 และ adapter V3 → V2 สำหรับ regression/parity test ระหว่างช่วงเปลี่ยนระบบ
-
-### Integration Gate — V3 Editor Preview
-
-เพิ่ม:
-
-```text
-v3-preview.html
-js/app-v3.js
-docs/V3-INTEGRATION.md
-```
-
-`v3-preview.html` ใช้ UI เดิม แต่เปลี่ยนแกนข้อมูลภายในเป็น Project V3 โดยตรง
-
-หลักการสำคัญ:
-
-- `state.project` เป็น Source of Truth
-- Text ใช้ `TextObject`
-- Frame เดิมถูกเก็บเป็น `FrameObject` จริง
-- Quantity อยู่ระดับ `Design`
-- ตำแหน่ง/Rotation อยู่ใน `Placement.transforms`
-- Layers เดิม map กับ `Design`
-- Undo/Redo snapshot Project V3
-- Export อ่าน geometry จาก Project V3
-
-รอบนี้ยัง **ไม่เปิด Frame-only UI** และยัง **ไม่เปลี่ยน production `index.html`** เพื่อแยกความเสี่ยงของ integration ออกจาก feature ใหม่
-
-## Test / Verification
-
-Model test:
-
-```bash
-node tests/model-v3.test.js
-```
-
-Model V3 tests ที่รันใน Phase 1 ครอบคลุม:
-- schema/defaults
-- V2 → V3 migration
-- text + frame แยกเป็น object จริง
-- roundtrip geometry กลับรูปแบบ V2
-- frame-only design
-- เพิ่ม frame ให้ text ภายหลัง
-- quantity โดยไม่ทำตำแหน่งเดิมหาย
-- validation ของ reference ที่เสีย
-
-Integration ปัจจุบัน:
-- `app-v3.js` ผ่าน JavaScript syntax check
-- V3 Preview ถูกแยกจาก Production
-- Browser regression แบบ interactive ยังต้องทดสอบก่อน Promote
-
-ดู checklist และ promotion gate ที่ `docs/V3-INTEGRATION.md`
-
-## Development rule
-
-ห้ามสลับ production runtime จาก V2 ไป V3 จนกว่า migration/integration regression จะผ่านก่อน
-
-ลำดับงานต่อจาก Integration Gate:
-
-1. ทดสอบ V3 Preview regression ครบ
-2. เพิ่ม Frame object แบบอิสระใน UI
-3. ทำ Text + Frame workflow / “ชุด”
-4. Snap / Position controls
-5. Auto Arrange ระดับ Design
-6. CorelDRAW compatibility gate
-7. Save/Open + Autosave
-8. Preflight
-9. Generate Standalone จาก source เดียว
-
-รายละเอียดดูที่:
-
-```text
-docs/V3-BASELINE.md
-docs/V3-DATA-MODEL.md
-docs/V3-INTEGRATION.md
-```
+จนกว่าจะผ่าน checklist นี้ จะยังไม่ Promote V3 เข้า `main`

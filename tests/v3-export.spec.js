@@ -49,6 +49,12 @@ test('preflight and Corel-editable SVG keep export behavior explicit', async ({ 
   await expect(page.locator('#preflightList')).toContainText('Corel');
   await expect(page.locator('#preflightEditableBtn')).toBeEnabled();
 
+  const [calibrationDownload] = await Promise.all([page.waitForEvent('download'), page.click('#calibrationBtn')]);
+  expect(calibrationDownload.suggestedFilename()).toBe('CG60ST-Calibration-100mm.svg');
+  const calibration = fs.readFileSync(await calibrationDownload.path(), 'utf8');
+  expect(calibration).toContain('width=\"100\" height=\"100\"');
+  expect(calibration).toContain('width=\"120mm\"');
+
   const validation = await page.evaluate(() => window.__StickerV3Diagnostics.validate());
   expect(validation.ok).toBe(true);
   expect(await page.evaluate(() => window.__StickerV3Diagnostics.features.corelEditableExport)).toBe(true);

@@ -13,7 +13,7 @@
     dims:$('dimensionsEnabled'), svg:$('previewSvg'), viewport:$('canvasViewport'), status:$('statusBadge'), selectionLabel:$('selectionLabel'), paperSummary:$('paperSummary'),
     arrangeTab:$('arrangeTab'), layersTab:$('layersTab'), layersView:$('layersView'), arrangeView:$('arrangeView'), layerList:$('layerList'), autoArrange:$('autoArrangeBtn'), autoArrangeTop:$('autoArrangeTopBtn'),
     transformScope:$('transformScope'), posX:$('positionX'), posY:$('positionY'), posW:$('positionW'), posH:$('positionH'), posRotation:$('positionRotation'), snapOn:$('snapEnabled'), snapDistance:$('snapDistance'),
-    margin:$('layoutMargin'), gap:$('layoutGap'), resetView:$('resetViewBtn'), export:$('exportBtn'), exportEditable:$('exportEditableBtn'), preflight:$('preflightBtn'), preflightPanel:$('preflightPanel'), preflightClose:$('preflightCloseBtn'), preflightSummary:$('preflightSummary'), preflightList:$('preflightList'), preflightEditable:$('preflightEditableBtn'), preflightExport:$('preflightExportBtn'), toast:$('toast'),
+    margin:$('layoutMargin'), gap:$('layoutGap'), resetView:$('resetViewBtn'), export:$('exportBtn'), exportEditable:$('exportEditableBtn'), preflight:$('preflightBtn'), preflightPanel:$('preflightPanel'), preflightClose:$('preflightCloseBtn'), preflightSummary:$('preflightSummary'), preflightList:$('preflightList'), preflightEditable:$('preflightEditableBtn'), preflightExport:$('preflightExportBtn'), calibration:$('calibrationBtn'), newProject:$('newProjectBtn'), openProject:$('openProjectBtn'), openProjectInput:$('openProjectInput'), saveProject:$('saveProjectBtn'), autosaveStatus:$('autosaveStatus'), toast:$('toast'),
     undo:$('undoBtn'), redo:$('redoBtn'), copy:$('copyBtn'), paste:$('pasteBtn'), duplicate:$('duplicateBtn'), bold:$('boldBtn'), del:$('deleteBtn')
   };
 
@@ -28,7 +28,8 @@
     selected:{placementId:null,objectId:null},
     editing:null, history:[], future:[], clipboard:null,
     mouse:{x:300,y:150,valid:false}, lastClick:{placementId:null,objectId:null,time:0},
-    snap:{enabled:true,threshold:3,guides:[]}
+    snap:{enabled:true,threshold:3,guides:[]},
+    persistence:{ready:false,restoring:false,timer:null,lastProjectJson:null,storageAvailable:true}
   };
 
   const unit=()=>state.project.unit;
@@ -55,6 +56,55 @@
   }
   function maxRatio(text,font,weight){return Math.max(.1,...linesOf(text).map(line=>measureLine(line,font,weight).ratio||.1));}
   function defaultTextSize(text,font='Arial',weight='700',lineH=50){return {w:round(lineH*maxRatio(text,font,weight),1),h:lineH*Math.max(1,linesOf(text).length)};}
+
+  const AUTOSAVE_KEY='cg60st.v3.autosave';
+  function storageGet(key){try{return localStorage.getItem(key);}catch(_){state.persistence.storageAvailable=false;return null;}}
+  function storageSet(key,value){try{localStorage.setItem(key,value);state.persistence.storageAvailable=true;return true;}catch(_){state.persistence.storageAvailable=false;return false;}}
+  function setAutosaveStatus(text,kind=''){if(!E.autosaveStatus)return;E.autosaveStatus.textContent=text;E.autosaveStatus.className=`autosave-status ${kind}`.trim();}
+  function currentProjectSignature(){return JSON.stringify(state.project);}
+  function scheduleAutosave(force=false){
+    if(!state.persistence.ready||state.persistence.restoring)return;
+    const signature=currentProjectSignature();
+    if(!force&&signature===state.persistence.lastProjectJson)return;
+    clearTimeout(state.persistence.timer);setAutosaveStatus('กำลังบันทึก…','saving');
+    state.persistence.timer=setTimeout(()=>{
+      try{
+        const serialized=M.serializeProject(state.project,false);
+        if(storageSet(AUTOSAVE_KEY,serialized)){state.persistence.lastProjectJson=currentProjectSignature();setAutosaveStatus('บันทึกอัตโนมัติแล้ว','saved');}
+        else setAutosaveStatus('บันทึกอัตโนมัติไม่ได้','warning');
+      }catch(_){setAutosaveStatus('บันทึกอัตโนมัติไม่ได้','warning');}
+    },350);
+  }
+  function parseProjectFile(raw){
+    const data=JSON.parse(raw);
+    if(data?.schemaVersion===M.SCHEMA_VERSION)return M.parseProject(data);
+    if(Array.isArray(data?.items)&&Array.isArray(data?.placements))return M.migrateLegacyState(data);
+    throw new Error('รูปแบบไฟล์งานไม่รองรับ');
+  }
+  function applyLoadedProject(project,{silent=false}={}){
+    state.persistence.restoring=true;state.project=M.parseProject(project);state.activeDesignId=state.project.designs[0]?.id||null;state.selected={placementId:null,objectId:null};state.editing=null;state.history=[];state.future=[];state.clipboard=null;state.snap.guides=[];
+    syncUnitButtons();renderAll();state.persistence.restoring=false;state.persistence.lastProjectJson=currentProjectSignature();if(!silent)toast('เปิดไฟล์งานแล้ว');updateToolState();
+  }
+  function restoreAutosave(){
+    const raw=storageGet(AUTOSAVE_KEY);if(!raw)return false;
+    try{applyLoadedProject(parseProjectFile(raw),{silent:true});setAutosaveStatus('กู้คืนงานล่าสุดแล้ว','saved');return true;}catch(_){setAutosaveStatus('Autosave เดิมใช้ไม่ได้','warning');return false;}
+  }
+  function downloadText(content,filename,type='application/json;charset=utf-8'){const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  function timestampName(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;}
+  function saveProjectFile(){
+    try{downloadText(M.serializeProject(state.project,true),`CG60ST-${timestampName()}.cg60st.json`);state.persistence.lastProjectJson=currentProjectSignature();setAutosaveStatus('บันทึกไฟล์แล้ว','saved');toast('บันทึกไฟล์งานแล้ว');}
+    catch(e){toast(`บันทึกไม่ได้: ${e.message||e}`);}
+  }
+  async function openProjectFile(file){
+    if(!file)return;
+    try{const raw=await file.text(),project=parseProjectFile(raw);applyLoadedProject(project);scheduleAutosave(true);}
+    catch(e){toast(`เปิดไฟล์ไม่ได้: ${e.message||e}`);}
+    finally{if(E.openProjectInput)E.openProjectInput.value='';}
+  }
+  function newProject(){
+    if(!window.confirm('สร้างงานใหม่? ถ้าต้องการเก็บงานปัจจุบันเป็นไฟล์ ให้กด “บันทึกงาน” ก่อน'))return;
+    state.persistence.restoring=true;state.project=M.createProject({name:'Sticker Layout',unit:'mm',paper:{w:600,h:300},layout:{margin:10,gap:5}});const size=defaultTextSize('ข้อความ 1');const first=M.addTextDesign(state.project,'ข้อความ 1',{...size,qty:1,padding:{x:5,y:5}});state.activeDesignId=first.design.id;M.ensurePlacements(state.project);state.selected={placementId:null,objectId:null};state.editing=null;state.history=[];state.future=[];state.clipboard=null;state.snap.guides=[];syncUnitButtons();autoArrange(false,false);state.persistence.restoring=false;state.persistence.lastProjectJson=null;scheduleAutosave(true);toast('สร้างงานใหม่แล้ว');
+  }
 
   function snapshot(){
     return JSON.stringify({project:state.project,activeDesignId:state.activeDesignId,selected:state.selected});
@@ -317,7 +367,7 @@
       row.addEventListener('click',e=>{if(e.target.closest('button'))return;state.activeDesignId=d.id;const p=placementForDesign(d.id);state.selected=p?{placementId:p.id,objectId:f?.id||t?.id||null}:{placementId:null,objectId:null};renderAll();});
       row.querySelector('.duplicate').addEventListener('click',e=>{e.stopPropagation();cloneDesignAtPoint(d.id,false);});row.querySelector('.delete').addEventListener('click',e=>{e.stopPropagation();deleteDesign(d.id,true);});
       row.addEventListener('dragstart',e=>layerDragStart(e,d.id));row.addEventListener('dragover',e=>e.preventDefault());row.addEventListener('drop',e=>layerDrop(e,d.id));E.layerList.appendChild(row);
-    });
+    });scheduleAutosave();
   }
 
   function labelGroup(x,y,text){const w=Math.max(26,text.length*4.5+8),h=13;return `<g transform="translate(${x-w/2} ${y-h/2})"><rect class="dimension-label-bg" width="${w}" height="${h}" rx="3"/><text class="dimension-text" x="${w/2}" y="${h/2+.2}">${esc(text)}</text></g>`;}
@@ -377,6 +427,8 @@
   }
   function buildStandardSvg(){const paper=state.project.paper,content=exportContent((o,p)=>textMarkup(o,p,false));return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${paper.w}mm" height="${paper.h}mm" viewBox="0 0 ${paper.w} ${paper.h}" overflow="hidden"><defs><clipPath id="paperClip"><rect x="0" y="0" width="${paper.w}" height="${paper.h}"/></clipPath></defs><g clip-path="url(#paperClip)">${content.join('')}</g></svg>`;}
   function buildEditableSvg(){const paper=state.project.paper,content=exportContent(editableTextMarkup);return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${paper.w}mm" height="${paper.h}mm" viewBox="0 0 ${paper.w} ${paper.h}" overflow="visible"><title>CG-60ST Corel Editable</title><!-- Text stays as SVG text; no textLength, lengthAdjust or clipPath. -->${content.join('')}</svg>`;}
+  function buildCalibrationSvg(){return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="120mm" height="120mm" viewBox="0 0 120 120"><title>CG-60ST 100 mm Calibration</title><rect x="10" y="10" width="100" height="100" fill="none" stroke="#000" stroke-width="0.3"/><line x1="10" y1="60" x2="110" y2="60" stroke="#000" stroke-width="0.3"/><line x1="60" y1="10" x2="60" y2="110" stroke="#000" stroke-width="0.3"/></svg>`;}
+  function exportCalibrationSvg(){downloadSvg(buildCalibrationSvg(),'CG60ST-Calibration-100mm.svg','สร้างไฟล์ทดสอบ 100 mm แล้ว');}
   function preflightReport(){
     const validation=M.validateProject(state.project),paper=state.project.paper,visible=[];let textCount=0;
     state.project.placements.forEach(p=>{const d=M.getDesign(state.project,p.designId);if(!d||d.visible===false)return;const objects=M.getObjectsForDesign(state.project,d.id).filter(o=>o.visible!==false);if(objects.some(o=>o.type==='text'))textCount++;const b=Ops.getPlacementBounds(state.project,p.id);if(b)visible.push({p,b});});
@@ -393,24 +445,24 @@
   function exportSvg(){const r=preflightReport();if(!r.validation.ok){openPreflight();toast('มีข้อผิดพลาด ต้องตรวจงานก่อน Export');return;}downloadSvg(buildStandardSvg(),'CG60ST-layout.svg','Export SVG 1:1 เฉพาะพื้นที่กระดาษแล้ว');}
   function exportEditableSvg(){const r=preflightReport();if(!r.validation.ok){openPreflight();toast('มีข้อผิดพลาด ต้องตรวจงานก่อน Export');return;}downloadSvg(buildEditableSvg(),'CG60ST-Corel-Editable.svg','สร้างไฟล์สำหรับแก้ต่อใน Corel แล้ว');}
 
-  function renderAll(editor=true){refreshPaperFromInputs();refreshLayoutSettings();normalizeSelection();if(editor)renderEditor();renderLayers();renderCanvas();document.querySelectorAll('[data-unit-label]').forEach(x=>x.textContent=unit());document.querySelector('.unit-inline').textContent=unit();updateToolState();}
+  function renderAll(editor=true){refreshPaperFromInputs();refreshLayoutSettings();normalizeSelection();if(editor)renderEditor();renderLayers();renderCanvas();document.querySelectorAll('[data-unit-label]').forEach(x=>x.textContent=unit());document.querySelector('.unit-inline').textContent=unit();updateToolState();scheduleAutosave();}
   function switchUnit(next){if(next===unit())return;pushHistory();refreshPaperFromInputs();refreshLayoutSettings();state.project.unit=next;syncUnitButtons();renderAll();}
   function updateToolState(){const hasSel=!!placementById(state.selected.placementId)&&!!selectedObject(),d=activeDesign(),t=d&&textFor(d.id);E.undo.disabled=!state.history.length;E.redo.disabled=!state.future.length;E.copy.disabled=!hasSel;E.del.disabled=!hasSel;if(E.duplicate)E.duplicate.disabled=!hasSel;E.paste.disabled=!state.clipboard;E.bold.disabled=!t;E.bold.classList.toggle('active',t?.font.weight==='700');}
   function isTypingTarget(target){return !!target?.closest?.('input,textarea,select,[contenteditable="true"]');}
-  document.addEventListener('keydown',e=>{const mod=e.ctrlKey||e.metaKey,key=e.key.toLowerCase(),typing=isTypingTarget(e.target),inline=e.target?.id==='inlineTextEditor';if(mod&&key==='z'){e.preventDefault();e.shiftKey?redo():undo();return;}if(mod&&key==='y'){e.preventDefault();redo();return;}if(mod&&key==='b'){e.preventDefault();toggleBold();return;}if(!typing&&mod&&key==='c'){e.preventDefault();copySelected();return;}if(!typing&&mod&&key==='v'){e.preventDefault();pasteItem();return;}if(!typing&&mod&&key==='d'){e.preventDefault();duplicateSelected();return;}if(!typing&&(e.key==='Delete'||e.key==='Backspace')){if(state.selected.placementId){e.preventDefault();deleteSelected();}return;}if(!typing&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)&&state.selected.placementId){e.preventDefault();const step=e.shiftKey?10:1,dx=e.key==='ArrowLeft'?-step:e.key==='ArrowRight'?step:0,dy=e.key==='ArrowUp'?-step:e.key==='ArrowDown'?step:0;nudgeSelected(dx,dy);return;}if(!typing&&e.key==='Enter'){const o=selectedObject();if(o?.type==='text'){e.preventDefault();beginInlineEdit(state.selected.placementId,o.id);}return;}if(inline&&e.key==='Tab'){e.preventDefault();document.execCommand?.('insertText',false,'    ');}});
+  document.addEventListener('keydown',e=>{const mod=e.ctrlKey||e.metaKey,key=e.key.toLowerCase(),typing=isTypingTarget(e.target),inline=e.target?.id==='inlineTextEditor';if(mod&&key==='z'){e.preventDefault();e.shiftKey?redo():undo();return;}if(mod&&key==='y'){e.preventDefault();redo();return;}if(mod&&key==='s'){e.preventDefault();saveProjectFile();return;}if(mod&&key==='b'){e.preventDefault();toggleBold();return;}if(!typing&&mod&&key==='c'){e.preventDefault();copySelected();return;}if(!typing&&mod&&key==='v'){e.preventDefault();pasteItem();return;}if(!typing&&mod&&key==='d'){e.preventDefault();duplicateSelected();return;}if(!typing&&(e.key==='Delete'||e.key==='Backspace')){if(state.selected.placementId){e.preventDefault();deleteSelected();}return;}if(!typing&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)&&state.selected.placementId){e.preventDefault();const step=e.shiftKey?10:1,dx=e.key==='ArrowLeft'?-step:e.key==='ArrowRight'?step:0,dy=e.key==='ArrowUp'?-step:e.key==='ArrowDown'?step:0;nudgeSelected(dx,dy);return;}if(!typing&&e.key==='Enter'){const o=selectedObject();if(o?.type==='text'){e.preventDefault();beginInlineEdit(state.selected.placementId,o.id);}return;}if(inline&&e.key==='Tab'){e.preventDefault();document.execCommand?.('insertText',false,'    ');}});
 
   [E.paperW,E.paperH,E.text,E.textW,E.textH,E.font,E.weight,E.qty,E.frameOn,E.frameW,E.frameH,E.padX,E.padY,E.margin,E.gap,E.posX,E.posY,E.posW,E.posH,E.posRotation].forEach(el=>el?.addEventListener('focus',()=>pushHistory(),{passive:true}));
   E.paperW.addEventListener('input',()=>{refreshPaperFromInputs();renderAll(false);});E.paperH.addEventListener('input',()=>{refreshPaperFromInputs();renderAll(false);});E.text.addEventListener('input',()=>syncItemFromEditor('text'));E.textW.addEventListener('input',()=>syncItemFromEditor('textW'));E.textH.addEventListener('input',()=>syncItemFromEditor('textH'));E.font.addEventListener('change',()=>syncItemFromEditor('font'));E.weight.addEventListener('change',()=>syncItemFromEditor('weight'));E.qty.addEventListener('input',()=>syncItemFromEditor('qty'));E.frameOn.addEventListener('change',()=>syncItemFromEditor('frame'));E.frameW.addEventListener('input',()=>syncItemFromEditor('frameW'));E.frameH.addEventListener('input',()=>syncItemFromEditor('frameH'));E.padX.addEventListener('input',()=>syncItemFromEditor('padX'));E.padY.addEventListener('input',()=>syncItemFromEditor('padY'));
   E.posX?.addEventListener('input',()=>applyPrecisionInput('x'));E.posY?.addEventListener('input',()=>applyPrecisionInput('y'));E.posW?.addEventListener('input',()=>applyPrecisionInput('w'));E.posH?.addEventListener('input',()=>applyPrecisionInput('h'));E.posRotation?.addEventListener('input',()=>applyPrecisionInput('rotation'));E.snapOn?.addEventListener('change',()=>{refreshSnapSettings();state.snap.guides=[];renderCanvas();});E.snapDistance?.addEventListener('input',refreshSnapSettings);
   E.fitFrame.addEventListener('click',()=>{const d=activeDesign(),t=d&&textFor(d.id);if(!d||!t)return;pushHistory();M.fitFrameToText(state.project,d.id);renderAll();});
   E.centerText?.addEventListener('click',()=>{const d=activeDesign(),t=d&&textFor(d.id),f=d&&frameFor(d.id);if(!d||!t||!f)return;pushHistory();Ops.centerTextInFrame(state.project,d.id);renderAll(false);toast('จัดข้อความกลางกรอบแล้ว');});
-  E.addItem.addEventListener('click',addItem);E.addLayer.addEventListener('click',addItem);E.addFrame?.addEventListener('click',addFrameDesign);E.addLayerFrame?.addEventListener('click',addFrameDesign);E.addTextToFrame?.addEventListener('click',addTextIntoActiveFrame);E.layersTab.addEventListener('click',()=>setTab('layers'));E.arrangeTab.addEventListener('click',()=>setTab('arrange'));E.autoArrange.addEventListener('click',()=>autoArrange(true,true));E.autoArrangeTop.addEventListener('click',()=>autoArrange(true,true));E.margin.addEventListener('input',refreshLayoutSettings);E.gap.addEventListener('input',refreshLayoutSettings);E.resetView.addEventListener('click',()=>{E.viewport.scrollTo({left:0,top:0,behavior:'smooth'});toast('ปรับมุมมองแล้ว');});E.export.addEventListener('click',exportSvg);E.exportEditable?.addEventListener('click',exportEditableSvg);E.preflight?.addEventListener('click',openPreflight);E.preflightClose?.addEventListener('click',closePreflight);E.preflightPanel?.addEventListener('pointerdown',e=>{if(e.target===E.preflightPanel)closePreflight();});E.preflightEditable?.addEventListener('click',()=>{exportEditableSvg();if(!E.preflightEditable.disabled)closePreflight();});E.preflightExport?.addEventListener('click',()=>{exportSvg();if(!E.preflightExport.disabled)closePreflight();});E.dims.addEventListener('change',()=>renderCanvas());
+  E.addItem.addEventListener('click',addItem);E.addLayer.addEventListener('click',addItem);E.addFrame?.addEventListener('click',addFrameDesign);E.addLayerFrame?.addEventListener('click',addFrameDesign);E.addTextToFrame?.addEventListener('click',addTextIntoActiveFrame);E.layersTab.addEventListener('click',()=>setTab('layers'));E.arrangeTab.addEventListener('click',()=>setTab('arrange'));E.autoArrange.addEventListener('click',()=>autoArrange(true,true));E.autoArrangeTop.addEventListener('click',()=>autoArrange(true,true));E.margin.addEventListener('input',()=>{refreshLayoutSettings();scheduleAutosave();});E.gap.addEventListener('input',()=>{refreshLayoutSettings();scheduleAutosave();});E.resetView.addEventListener('click',()=>{E.viewport.scrollTo({left:0,top:0,behavior:'smooth'});toast('ปรับมุมมองแล้ว');});E.export.addEventListener('click',exportSvg);E.exportEditable?.addEventListener('click',exportEditableSvg);E.preflight?.addEventListener('click',openPreflight);E.preflightClose?.addEventListener('click',closePreflight);E.preflightPanel?.addEventListener('pointerdown',e=>{if(e.target===E.preflightPanel)closePreflight();});E.preflightEditable?.addEventListener('click',()=>{exportEditableSvg();if(!E.preflightEditable.disabled)closePreflight();});E.preflightExport?.addEventListener('click',()=>{exportSvg();if(!E.preflightExport.disabled)closePreflight();});E.calibration?.addEventListener('click',exportCalibrationSvg);E.newProject?.addEventListener('click',newProject);E.openProject?.addEventListener('click',()=>E.openProjectInput?.click());E.openProjectInput?.addEventListener('change',()=>openProjectFile(E.openProjectInput.files?.[0]));E.saveProject?.addEventListener('click',saveProjectFile);E.dims.addEventListener('change',()=>renderCanvas());
   E.undo.addEventListener('click',undo);E.redo.addEventListener('click',redo);E.copy.addEventListener('click',copySelected);E.paste.addEventListener('click',pasteItem);E.duplicate?.addEventListener('click',duplicateSelected);E.bold.addEventListener('click',toggleBold);E.del.addEventListener('click',deleteSelected);
   document.querySelectorAll('[data-arrange]').forEach(b=>b.addEventListener('click',()=>arrangeSelected(b.dataset.arrange)));document.querySelectorAll('.unit-switch button').forEach(b=>b.addEventListener('click',()=>switchUnit(b.dataset.unit)));
 
   const aSize=defaultTextSize('WAREHOUSE');const a=M.addTextDesign(state.project,'WAREHOUSE',{...aSize,qty:1,padding:{x:5,y:5}});
-  M.addTextDesign(state.project,'EXIT',{w:70,h:30,qty:1,padding:{x:5,y:5}});state.activeDesignId=a.design.id;M.ensurePlacements(state.project);autoArrange(false,false);state.selected={placementId:null,objectId:null};setTab('layers');syncUnitButtons();renderAll();
+  M.addTextDesign(state.project,'EXIT',{w:70,h:30,qty:1,padding:{x:5,y:5}});state.activeDesignId=a.design.id;M.ensurePlacements(state.project);autoArrange(false,false);state.selected={placementId:null,objectId:null};setTab('layers');syncUnitButtons();if(!restoreAutosave())renderAll();state.persistence.ready=true;if(state.persistence.storageAvailable&&state.persistence.lastProjectJson===null)scheduleAutosave(true);
 
   // Exposed only for integration diagnostics/tests on the V3 preview. Production UI never depends on this.
-  globalThis.__StickerV3Diagnostics=Object.freeze({schemaVersion:M.SCHEMA_VERSION,features:{independentFrame:true,frameFirstTextLater:true,frameRotation:true,designBehavior:true,rigidArrange:true,sharedResizeAnchors:true,precisionControls:true,snapGuides:true,arrowNudge:true,corelEditableExport:true,preflight:true},getProject:()=>M.deepClone(state.project),validate:()=>M.validateProject(state.project)});
+  globalThis.__StickerV3Diagnostics=Object.freeze({schemaVersion:M.SCHEMA_VERSION,features:{independentFrame:true,frameFirstTextLater:true,frameRotation:true,designBehavior:true,rigidArrange:true,sharedResizeAnchors:true,precisionControls:true,snapGuides:true,arrowNudge:true,corelEditableExport:true,preflight:true,persistence:true,autosave:true,calibration100mm:true},getProject:()=>M.deepClone(state.project),validate:()=>M.validateProject(state.project),forceAutosave:()=>scheduleAutosave(true)});
 })();

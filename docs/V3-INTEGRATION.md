@@ -150,3 +150,14 @@ Regression gate ของ phase นี้ต้องรัน Model tests, Geom
 - Preflight ตรวจ Project schema, ชิ้นงานนอกกระดาษ และการซ้อนกันของ Placement ก่อน Export
 - Preflight warnings ไม่แก้ layout ให้อัตโนมัติ และไม่ย่อ/ย้ายชิ้นงานเอง
 - Phase นี้ยัง **ไม่** แปลงตัวอักษรเป็น Curve/Path; Cut Ready แบบ outline เป็น phase แยกเพราะต้องมีแหล่ง glyph outline ที่ถูกต้อง
+
+
+## Persistence / Standalone finalization
+
+- Save/Open Project ใช้ Project schema V3 โดยตรง (`.cg60st.json`)
+- Open รองรับ legacy state ที่มี `items` / `placements` ผ่าน migration layer
+- Autosave เก็บ Project ล่าสุดใน localStorage และกู้คืนหลัง Reload
+- ถ้า localStorage ใช้ไม่ได้ ระบบยัง Save/Open ด้วยไฟล์ได้ตามปกติ
+- Calibration SVG 100×100 mm ใช้สำหรับ Corel scale acceptance test
+- `scripts/build-v3-standalone.js` สร้าง `StickerLayout-V3-Standalone.html` จาก HTML/CSS/JS V3 source ชุดเดียว ลดความเสี่ยงไฟล์ standalone ล้าหลัง
+- Production `main` ยังไม่ถูกเปลี่ยนจนกว่า User Acceptance บน Corel/FineCut/CG-60ST จะผ่าน
