@@ -6,7 +6,7 @@ on:
       - v3-final
     paths:
       - '.github/workflows/apply-v3-final-cutready.yml'
-      - 'scripts/apply-v3-final-cutready.js'
+      - 'scripts/apply-v3-final-cutready.py'
 
 permissions:
   contents: write
@@ -35,25 +35,8 @@ jobs:
           cp node_modules/opentype.js/dist/opentype.min.js js/vendor/opentype.min.js
           cp node_modules/opentype.js/LICENSE js/vendor/opentype.LICENSE.txt
 
-      - name: Repair generated patch source quoting
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('scripts/apply-v3-final-cutready.js')
-          s=p.read_text(encoding='utf-8')
-          s=s.replace("toast(`อ่านฟอนต์แล้ว ${count} ไฟล์`)", "toast('อ่านฟอนต์แล้ว '+count+' ไฟล์')")
-          marker="const cutReadyFunctions = String.raw`"
-          start=s.index(marker)+len(marker)
-          end=s.index("\n`;\napp=replaceOnce(app,`  function buildCalibrationSvg(){", start)
-          body=s[start:end]
-          body=body.replace('`','\\`').replace('${','\\${')
-          s=s[:start]+body+s[end:]
-          p.write_text(s,encoding='utf-8')
-          PY
-          node --check scripts/apply-v3-final-cutready.js
-
       - name: Apply final Cut Ready implementation
-        run: node scripts/apply-v3-final-cutready.js
+        run: python3 scripts/apply-v3-final-cutready.py
 
       - name: Build standalone from final source
         run: node scripts/build-v3-standalone.js
@@ -100,12 +83,12 @@ jobs:
         run: |
           rm -rf node_modules test-results
           rm -f package-lock.json
-          rm -f scripts/apply-v3-final-cutready.js
+          rm -f scripts/apply-v3-final-cutready.js scripts/apply-v3-final-cutready.py
 
       - name: Commit verified Final changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html v3-preview.html css/v3-preview.css js/app-v3.js js/vendor/opentype.min.js js/vendor/opentype.LICENSE.txt scripts/build-v3-standalone.js StickerLayout-V3-Standalone.html tests/v3-cutready.spec.js README.md scripts/apply-v3-final-cutready.js
+          git add index.html v3-preview.html css/v3-preview.css js/app-v3.js js/vendor/opentype.min.js js/vendor/opentype.LICENSE.txt scripts/build-v3-standalone.js StickerLayout-V3-Standalone.html tests/v3-cutready.spec.js README.md scripts/apply-v3-final-cutready.js scripts/apply-v3-final-cutready.py
           git commit -m "feat: complete Cut Ready Curve Path export [skip ci]"
           git push origin HEAD:v3-final
