@@ -1,9 +1,10 @@
-name: V3 Foundation CI
+name: V3 Production CI
 
 on:
   push:
     branches:
       - v3-foundation
+      - v3-final
   pull_request:
     branches:
       - main
@@ -27,6 +28,7 @@ jobs:
           node --check js/app-v3.js
           node --check scripts/build-v3-standalone.js
           node --check tests/v3-export.spec.js
+          node --check tests/v3-cutready.spec.js
           node --check tests/v3-persistence.spec.js
           node --check tests/v3-standalone.spec.js
 
@@ -36,14 +38,28 @@ jobs:
       - name: Run V3 design geometry tests
         run: node tests/design-ops-v3.test.js
 
-      - name: Verify preview runtime wiring
+      - name: Verify production and preview runtime wiring
         run: |
+          test -s js/vendor/opentype.min.js
+          test -s js/vendor/opentype.LICENSE.txt
+          grep -q 'js/vendor/opentype.min.js' v3-preview.html
           grep -q 'js/model-v3.js' v3-preview.html
           grep -q 'js/design-ops-v3.js' v3-preview.html
           grep -q 'js/app-v3.js' v3-preview.html
           grep -q 'css/v3-preview.css' v3-preview.html
+          grep -q 'js/vendor/opentype.min.js' index.html
+          grep -q 'js/model-v3.js' index.html
+          grep -q 'js/design-ops-v3.js' index.html
+          grep -q 'js/app-v3.js' index.html
+          grep -q 'exportCutReadyBtn' index.html
+          grep -q 'ไฟล์พร้อมตัด' index.html
+          grep -q 'cutReadyPathExport:true' js/app-v3.js
           if grep -q 'js/app-v2.js' v3-preview.html; then
             echo 'v3-preview.html must not load app-v2.js'
+            exit 1
+          fi
+          if grep -q 'js/app-v2.js' index.html; then
+            echo 'production index.html must not load app-v2.js'
             exit 1
           fi
 
@@ -55,6 +71,8 @@ jobs:
             echo 'StickerLayout-V3-Standalone.html is out of sync with V3 source'
             exit 1
           }
+          grep -q 'ไฟล์พร้อมตัด' StickerLayout-V3-Standalone.html
+          grep -q 'cutReadyPathExport:true' StickerLayout-V3-Standalone.html
           if grep -Eq 'src="js/|href="css/' StickerLayout-V3-Standalone.html; then
             echo 'Standalone still has external project CSS/JS dependency'
             exit 1
@@ -90,5 +108,5 @@ jobs:
           cat /tmp/v3-http.log
           exit 1
 
-      - name: Run full V3 release-candidate browser suite
-        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js --reporter=line --workers=1
+      - name: Run full V3 final browser suite
+        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-cutready.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js --reporter=line --workers=1
