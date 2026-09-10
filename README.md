@@ -4,9 +4,12 @@
 
 ## Production
 
-`main` ใช้ V3 เป็น Production runtime แล้ว โดย GitHub Pages เปิดจาก `index.html`
+- **GitHub repository** ใช้เก็บ Source Code และ Version Control
+- **Cloudflare Pages** เป็น Production ที่ผู้ใช้เปิดใช้งานจริง
+- Production URL: `https://plotter-cg-60st.pages.dev/`
+- Cloudflare Pages ดึง Production จาก branch `main`
 
-branch `v3-foundation` ยังคงเป็นสายพัฒนาสำหรับตรวจสอบย้อนหลังและการแก้ไขต่อไป
+GitHub Pages ไม่ใช่ Production หลักของโปรเจกต์นี้
 
 ## V3 ที่ทำเสร็จแล้ว
 
@@ -14,11 +17,16 @@ branch `v3-foundation` ยังคงเป็นสายพัฒนาสำ
 - สร้างกรอบก่อน แล้วใส่ข้อความภายหลัง
 - Quantity ระดับชุดงาน
 - ลาก / Resize / Rotate / Undo / Redo / Copy / Paste / Duplicate / Delete
+- ลบชิ้นงานสุดท้ายได้ และงานใหม่เริ่มจากกระดาษเปล่า
 - Double-click แก้ข้อความตรง Canvas
 - Layers + Arrange + Auto Arrange โดยไม่ย่อขนาด
 - X / Y / W / H / Rotation แบบกรอกตัวเลข
 - Arrow 1 mm / Shift+Arrow 10 mm
 - Snap ขอบ/กึ่งกลางกระดาษและชิ้นงานอื่น พร้อม Alt เพื่อปิด Snap ชั่วคราว
+- Middle mouse drag สำหรับ Pan พื้นที่ทำงาน
+- Sidebar ซ้าย/ขวาปรับความกว้างได้และจำค่าล่าสุดใน Browser
+- เปิดเว็บ / งานใหม่ / เปิดไฟล์ / พอดีหน้าจอ แล้วกระดาษอยู่กึ่งกลาง Workspace
+- Font Picker แสดงตัวอย่างฟอนต์ และ Hover Preview บน Canvas ก่อนเลือกจริง
 - Preflight ตรวจโครงสร้าง, งานนอกกระดาษ, งานซ้อนกัน
 - Export `SVG 1:1` สำหรับ workflow เดิม
 - Export `ส่งไปแก้ต่อใน Corel` โดยคง SVG text และลด attribute ที่รบกวนการแก้ข้อความ
@@ -27,9 +35,19 @@ branch `v3-foundation` ยังคงเป็นสายพัฒนาสำ
 - ไฟล์ Calibration 100×100 mm สำหรับเช็กสเกลจริงใน Corel
 - Save Project เป็น `.cg60st.json`
 - Open Project และรองรับ legacy V2 state ที่มี `items/placements`
-- Autosave + กู้คืนงานล่าสุดหลัง Reload
-- `Ctrl+S` บันทึก Project
+- Autosave ทำงานเบื้องหลัง และผู้ใช้เลือก `กู้คืนงานล่าสุด` จากเมนู `ไฟล์` เมื่อต้องการ
+- `Ctrl+S` ดาวน์โหลด Project
 - Generated single-file `StickerLayout-V3-Standalone.html` จาก source V3 ชุดเดียว
+
+## UX Workspace
+
+Header จัดกลุ่มงานตามความหมายแทนการวางทุกปุ่มไว้ในระดับเดียวกัน:
+
+- `ไฟล์` — งานใหม่, เปิดไฟล์งาน, ดาวน์โหลดไฟล์งาน, กู้คืน Autosave
+- `ตรวจงาน` — Preflight ก่อนส่งออก
+- `ส่งออก` — ไฟล์พร้อมตัด, แก้ต่อใน Corel, SVG 1:1, Calibration 100 mm
+
+เมื่อ Project ว่าง ระบบแสดง Empty State พร้อม `+ ข้อความ` และ `▭ กรอบ` โดยไม่สร้างตัวอย่าง WAREHOUSE/EXIT ให้อัตโนมัติ
 
 ## Export Final
 
@@ -42,42 +60,37 @@ V3 มีสอง workflow หลักที่แยกชัดเจน:
 
 Workflow ที่แนะนำ:
 
-1. ออกแบบ/จัด Layout ในเว็บ
-2. กด `ตรวจงาน`
-3. ถ้าต้องแก้ข้อความต่อ เลือก `ส่งไปแก้ต่อใน Corel`
-4. ถ้าจัดงานเสร็จแล้ว เลือก `ไฟล์พร้อมตัด`
-5. FineCut → Mimaki CG-60ST
+1. ตั้งขนาดกระดาษ
+2. เพิ่มข้อความหรือกรอบ
+3. จัด Layout ในเว็บ
+4. กด `ตรวจงาน`
+5. ถ้าต้องแก้ข้อความต่อ เลือก `ส่งออก → แก้ต่อใน Corel`
+6. ถ้าจัดงานเสร็จแล้ว เลือก `ส่งออก → ไฟล์พร้อมตัด`
+7. FineCut → Mimaki CG-60ST
 
 ## Verification อัตโนมัติ
 
-CI ของ `v3-foundation` ตรวจ:
+Production CI ตรวจ:
 
 - JavaScript syntax
 - Model V3 regression
 - Geometry / set behavior
 - Frame-first browser workflow
+- Text + Frame behavior
 - Precision / Snap
 - Corel-editable SVG structure + Preflight
 - Cut Ready Curve/Path export pipeline + local font outline resolution
-- Save/Open + Autosave
+- Save/Open + explicit Autosave recovery
+- UX empty project / centered canvas
+- Sidebar resize
+- Middle-mouse Pan
+- Font Hover Preview
 - Generated Standalone แบบไฟล์เดียว
 
 ## User Acceptance ที่ยังต้องทดสอบจริง
 
-สิ่งเดียวที่ automated browser test ยืนยันแทนเครื่องบริษัทไม่ได้คือพฤติกรรมของ **CorelDRAW / FineCut / CG-60ST จริง**
+Automated browser tests ตรวจระบบเว็บได้ แต่ไม่สามารถแทนการทดสอบ **CorelDRAW / FineCut / CG-60ST จริง** บนเครื่องบริษัทได้
 
 Checklist อยู่ที่ `docs/V3-USER-ACCEPTANCE.md`
 
-V3 ถูก Deploy เข้า `main` แล้ว แต่ Compatibility กับ CorelDRAW / FineCut / CG-60ST จริงยังต้องยืนยันจากเครื่องใช้งานจริงตาม checklist นี้
-
-
-## UX Workspace Final
-
-- Header แยก `ไฟล์` และ `ส่งออก` เป็นเมนูชัดเจน ลดปุ่มที่แย่งความสนใจบนแถบบน
-- งานใหม่เริ่มจากกระดาษเปล่า ไม่สร้าง WAREHOUSE/EXIT ให้อัตโนมัติ และลบชิ้นงานสุดท้ายได้
-- Autosave ทำงานเบื้องหลัง; การกู้คืนอยู่ในเมนู `ไฟล์` โดยผู้ใช้เป็นคนเลือก
-- Sidebar ซ้าย/ขวาลากปรับความกว้างได้และจำขนาดใน Browser; double-click ตัวแบ่งเพื่อคืนค่า 300 px
-- Middle mouse drag ใช้ Pan พื้นที่ทำงานแบบเครื่องมือ Diagram/CAD
-- เปิดเว็บ/งานใหม่/เปิดไฟล์/พอดีหน้าจอ จัดกระดาษให้อยู่กึ่งกลาง Workspace
-- Font Picker แสดงตัวอย่างฟอนต์ในรายการ และ hover จะ Preview บน Canvas ก่อนคลิกยืนยัน
-- Empty state บอกทางเริ่มงานจาก `+ ข้อความ` หรือ `▭ กรอบ` โดยไม่บังคับว่าต้องมีชิ้นงานอย่างน้อย 1 ชิ้น
+หลัง Cloudflare Pages Deploy จาก `main` แล้ว ให้ทดสอบ workflow จริงจาก `https://plotter-cg-60st.pages.dev/` และรายงานผลที่ต่างจาก Preview/ขนาดจริงกลับมาเพื่อแก้จากหลักฐาน Runtime จริง
