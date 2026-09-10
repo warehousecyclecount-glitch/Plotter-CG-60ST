@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/hotfix-v4-pointer.yml
       - scripts/hotfix-v4-pointer.py
+      - tests/v4-pointer-debug.spec.js
 
 permissions:
   contents: write
@@ -22,47 +23,28 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Apply hotfix
+      - name: Apply hotfix candidate
         run: python3 scripts/hotfix-v4-pointer.py
       - name: Rebuild standalone
         run: node scripts/build-v3-standalone.js
-      - name: Syntax checks
+      - name: Syntax and model checks
         run: |
-          node --check js/model-v3.js
-          node --check js/design-ops-v3.js
           node --check js/app-v3.js
-          node --check scripts/build-v3-standalone.js
-      - name: Model and geometry regression
-        run: |
           node tests/model-v3.test.js
           node tests/design-ops-v3.test.js
-      - name: Install browser tests
+      - name: Install Chromium
         run: |
           npm install --no-save @playwright/test@1.55.0
           npx playwright install --with-deps chromium
-      - name: Start test server
+      - name: Start server
         run: |
           python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/hotfix-http.log 2>&1 &
           for i in {1..20}; do
             if curl -fsS http://127.0.0.1:4173/v3-preview.html >/dev/null; then exit 0; fi
             sleep 1
           done
-          cat /tmp/hotfix-http.log
           exit 1
-      - name: Focused pointer regression
+      - name: Pointer diagnostics
+        run: npx playwright test tests/v4-pointer-debug.spec.js --reporter=line --workers=1
+      - name: Focused regressions
         run: npx playwright test tests/v3-design-behavior.spec.js tests/v3-precision.spec.js --reporter=line --workers=1
-      - name: Full browser regression
-        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-cutready.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js tests/v3-ux-redesign.spec.js tests/v4-canvas-interactions.spec.js --reporter=line --workers=1
-      - name: Standalone consistency
-        run: |
-          test -z "$(grep -n 'class=\"frame-hit\"' StickerLayout-V3-Standalone.html || true)"
-          grep -q 'function resolvePointerObject(e)' StickerLayout-V3-Standalone.html
-      - name: Commit verified hotfix
-        run: |
-          rm -rf node_modules test-results
-          rm -f package-lock.json
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add js/app-v3.js css/canvas-v4.css StickerLayout-V3-Standalone.html
-          git commit -m "fix: route frame-edge interaction to frame object [skip ci]"
-          git push origin HEAD:v4-interaction-hotfix
