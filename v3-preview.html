@@ -30,7 +30,11 @@
           <button type="button" data-unit="mm" class="active">mm</button>
           <button type="button" data-unit="cm">cm</button>
         </div>
-        <button id="exportBtn" class="primary-btn" type="button">Export SVG 1:1</button>
+        <div class="export-actions">
+          <button id="preflightBtn" class="export-check-btn" type="button">ตรวจงาน</button>
+          <button id="exportEditableBtn" class="export-editable-btn" type="button">ส่งไปแก้ต่อใน Corel</button>
+          <button id="exportBtn" class="primary-btn" type="button">SVG 1:1</button>
+        </div>
       </div>
     </header>
 
@@ -240,6 +244,21 @@
         </div>
       </aside>
     </main>
+  </div>
+
+  <div id="preflightPanel" class="preflight-panel hidden" role="dialog" aria-modal="true" aria-labelledby="preflightTitle">
+    <div class="preflight-card">
+      <div class="preflight-head">
+        <div><span class="eyebrow">Preflight</span><h2 id="preflightTitle">ตรวจงานก่อน Export</h2></div>
+        <button id="preflightCloseBtn" class="preflight-close" type="button" aria-label="ปิด">×</button>
+      </div>
+      <div id="preflightSummary" class="preflight-summary ok">พร้อม Export</div>
+      <ul id="preflightList" class="preflight-list"></ul>
+      <div class="preflight-actions">
+        <button id="preflightEditableBtn" class="export-editable-btn" type="button">ส่งไปแก้ต่อใน Corel</button>
+        <button id="preflightExportBtn" class="primary-btn" type="button">SVG 1:1</button>
+      </div>
+    </div>
   </div>
 
   <div id="toast" class="toast hidden"></div>

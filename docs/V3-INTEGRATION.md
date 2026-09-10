@@ -138,3 +138,15 @@ V3 Preview เพิ่มเครื่องมือความแม่น
 - การกรอก W/H ใช้ shared-object resize ที่รักษา anchor ของทุก Quantity
 
 Regression gate ของ phase นี้ต้องรัน Model tests, Geometry tests และ Browser suite (`v3-browser-smoke`, `v3-design-behavior`, `v3-precision`) พร้อมกันก่อนถือว่าผ่าน
+
+
+## Corel Editable Export / Preflight phase
+
+เพิ่ม Export สองเส้นทางโดยยังไม่แตะ Production `main`:
+
+- `SVG 1:1` รักษาพฤติกรรมเดิม: ขนาดหน้ากระดาษเป็น mm และ clip เฉพาะพื้นที่กระดาษ
+- `ส่งไปแก้ต่อใน Corel` เก็บข้อความเป็น SVG `<text>` แต่หลีกเลี่ยง `textLength`, `lengthAdjust` และ `clipPath` เพื่อให้ Corel มีโอกาสรักษาความเป็นข้อความที่แก้ต่อได้มากกว่า
+- Editable export ยังอ้างอิงชื่อฟอนต์ ดังนั้นเครื่องที่เปิดใน Corel ควรมีฟอนต์เดียวกัน
+- Preflight ตรวจ Project schema, ชิ้นงานนอกกระดาษ และการซ้อนกันของ Placement ก่อน Export
+- Preflight warnings ไม่แก้ layout ให้อัตโนมัติ และไม่ย่อ/ย้ายชิ้นงานเอง
+- Phase นี้ยัง **ไม่** แปลงตัวอักษรเป็น Curve/Path; Cut Ready แบบ outline เป็น phase แยกเพราะต้องมีแหล่ง glyph outline ที่ถูกต้อง
