@@ -29,6 +29,19 @@ jobs:
       - name: Apply V4 patch
         run: python3 scripts/apply-v4-canvas-interactions.py
 
+      - name: Repair generated escapes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('js/app-v3.js')
+          s=p.read_text(encoding='utf-8')
+          malformed="text?.text?.replace(/\n/g,' / ')"
+          fixed="text?.text?.replace(/\\n/g,' / ')"
+          if malformed not in s:
+              raise SystemExit('Expected generated newline regex was not found')
+          p.write_text(s.replace(malformed,fixed),encoding='utf-8')
+          PY
+
       - name: Fix test helper names and standalone builder
         run: |
           python3 - <<'PY'
