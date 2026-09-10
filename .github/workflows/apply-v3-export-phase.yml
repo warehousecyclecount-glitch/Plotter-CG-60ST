@@ -1,0 +1,82 @@
+name: Apply V3 Export Phase
+
+on:
+  push:
+    branches:
+      - v3-foundation
+    paths:
+      - '.github/workflows/apply-v3-export-phase.yml'
+      - 'scripts/apply-v3-export-phase.py'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-test-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: v3-foundation
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Apply export phase
+        run: python3 scripts/apply-v3-export-phase.py
+
+      - name: Syntax checks
+        run: |
+          node --check js/model-v3.js
+          node --check js/design-ops-v3.js
+          node --check js/app-v3.js
+          node --check tests/v3-export.spec.js
+
+      - name: Run model and geometry regression
+        run: |
+          node tests/model-v3.test.js
+          node tests/design-ops-v3.test.js
+
+      - name: Install Playwright test runner
+        run: npm install --no-save @playwright/test@1.55.0
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/v3-http.log 2>&1 &
+          echo $! > /tmp/v3-http.pid
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:4173/v3-preview.html >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/v3-http.log
+          exit 1
+
+      - name: Run browser regression once at the end
+        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js --reporter=line --workers=1
+
+      - name: Clean generated test files
+        run: |
+          rm -rf node_modules test-results
+          rm -f package-lock.json
+          rm -f scripts/apply-v3-export-phase.py
+
+      - name: Commit verified export phase
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/app-v3.js v3-preview.html css/v3-preview.css docs/V3-INTEGRATION.md tests/v3-export.spec.js scripts/apply-v3-export-phase.py
+          if git diff --cached --quiet; then
+            echo "No verified export changes to commit"
+            exit 1
+          fi
+          git commit -m "feat: add Corel editable export and preflight [skip ci]"
+          git push origin HEAD:v3-foundation
