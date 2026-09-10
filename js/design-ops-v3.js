@@ -41,23 +41,25 @@
     return { x: cx - halfW, y: cy - halfH, w: halfW * 2, h: halfH * 2 };
   }
 
-  function cornerLocal(w, h, corner) {
-    if (corner === 'nw') return { x:0, y:0 };
-    if (corner === 'ne') return { x:w, y:0 };
-    if (corner === 'sw') return { x:0, y:h };
-    return { x:w, y:h };
+  function handleLocal(w, h, handle) {
+    const map = {
+      nw:{x:0,y:0}, n:{x:w/2,y:0}, ne:{x:w,y:0},
+      e:{x:w,y:h/2}, se:{x:w,y:h}, s:{x:w/2,y:h},
+      sw:{x:0,y:h}, w:{x:0,y:h/2}
+    };
+    return map[handle] || map.se;
   }
 
-  function oppositeCorner(corner) {
-    return ({ nw:'se', ne:'sw', sw:'ne', se:'nw' })[corner] || 'nw';
+  function oppositeHandle(handle) {
+    return ({ nw:'se', n:'s', ne:'sw', e:'w', se:'nw', s:'n', sw:'ne', w:'e' })[handle] || 'nw';
   }
 
-  function getObjectCornerWorld(object, transform, corner) {
+  function getObjectHandleWorld(object, transform, handle) {
     const w = finite(object?.size?.w);
     const h = finite(object?.size?.h);
     const x = finite(transform?.x);
     const y = finite(transform?.y);
-    const local = cornerLocal(w, h, corner);
+    const local = handleLocal(w, h, handle);
     const cx = x + w / 2;
     const cy = y + h / 2;
     const dx = local.x - w / 2;
@@ -69,8 +71,12 @@
     };
   }
 
-  function topLeftForFixedCorner(worldPoint, newW, newH, rotation, fixedCorner) {
-    const local = cornerLocal(newW, newH, fixedCorner);
+  function getObjectCornerWorld(object, transform, corner) {
+    return getObjectHandleWorld(object, transform, corner);
+  }
+
+  function topLeftForFixedHandle(worldPoint, newW, newH, rotation, fixedHandle) {
+    const local = handleLocal(newW, newH, fixedHandle);
     const dx = local.x - newW / 2;
     const dy = local.y - newH / 2;
     const a = rad(rotation);
@@ -145,37 +151,49 @@
     return placement;
   }
 
-  function resizeSharedObjectFromCorner(project, designId, objectId, newWidth, newHeight, draggedCorner) {
+  function resizeSharedObject(project, designId, objectId, newWidth, newHeight, draggedHandle, options = {}) {
     const design = M.getDesign(project, designId);
     const object = M.getObject(project, objectId);
     if (!design) throw new Error(`Unknown design: ${designId}`);
     if (!object || !design.objectIds.includes(objectId)) throw new Error(`Object ${objectId} does not belong to design ${designId}`);
-    if (!['nw','ne','sw','se'].includes(draggedCorner)) throw new Error(`Unsupported resize corner: ${draggedCorner}`);
+    const handles = ['nw','n','ne','e','se','s','sw','w'];
+    if (!handles.includes(draggedHandle)) throw new Error(`Unsupported resize handle: ${draggedHandle}`);
 
     const newW = Math.max(0.001, finite(newWidth, object.size.w));
     const newH = Math.max(0.001, finite(newHeight, object.size.h));
-    const fixedCorner = oppositeCorner(draggedCorner);
+    const fromCenter = options.fromCenter === true;
+    const fixedHandle = oppositeHandle(draggedHandle);
     const placements = project.placements.filter(p => p.designId === designId);
     const anchors = placements.map(placement => {
       const t = M.ensureTransform(placement, object.id, { x:0, y:0, rotation:0 });
       return {
         placement,
         rotation: normalizeRotation(t.rotation),
-        world: getObjectCornerWorld(object, t, fixedCorner)
+        center:{ x:t.x + object.size.w/2, y:t.y + object.size.h/2 },
+        world: getObjectHandleWorld(object, t, fixedHandle)
       };
     });
 
     object.size.w = newW;
     object.size.h = newH;
-    anchors.forEach(({ placement, rotation, world }) => {
+    anchors.forEach(({ placement, rotation, center, world }) => {
       const t = M.ensureTransform(placement, object.id, { x:0, y:0, rotation });
-      const topLeft = topLeftForFixedCorner(world, newW, newH, rotation, fixedCorner);
-      t.x = topLeft.x;
-      t.y = topLeft.y;
+      if (fromCenter) {
+        t.x = center.x - newW/2;
+        t.y = center.y - newH/2;
+      } else {
+        const topLeft = topLeftForFixedHandle(world, newW, newH, rotation, fixedHandle);
+        t.x = topLeft.x;
+        t.y = topLeft.y;
+      }
       t.rotation = rotation;
     });
     markUpdated(project);
     return object;
+  }
+
+  function resizeSharedObjectFromCorner(project, designId, objectId, newWidth, newHeight, draggedCorner) {
+    return resizeSharedObject(project, designId, objectId, newWidth, newHeight, draggedCorner, { fromCenter:false });
   }
 
   function copyPlacementGeometry(project, sourcePlacementId, targetPlacementId, options = {}) {
@@ -226,10 +244,12 @@
   return Object.freeze({
     rotatedObjectBounds,
     getObjectCornerWorld,
+    getObjectHandleWorld,
     getPlacementBounds,
     translatePlacement,
     movePlacementBoundsTo,
     rotatePlacement,
+    resizeSharedObject,
     resizeSharedObjectFromCorner,
     copyPlacementGeometry,
     centerTextInFrame,

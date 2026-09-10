@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="css/enhancements.css">
   <link rel="stylesheet" href="css/v3-preview.css">
   <link rel="stylesheet" href="css/ux-redesign.css">
+  <link rel="stylesheet" href="css/canvas-v4.css">
 </head>
 <body>
   <div class="app-shell">
@@ -192,19 +193,40 @@
           </div>
           <div class="toolbar-actions">
             <button id="autoArrangeTopBtn" type="button">จัดลงกระดาษอัตโนมัติ</button>
-            <button id="resetViewBtn" type="button">พอดีหน้าจอ</button>
+            <div class="zoom-controls" aria-label="ซูมพื้นที่ทำงาน">
+              <button id="zoomOutBtn" type="button" title="ซูมออก">−</button>
+              <button id="zoomLabel" class="zoom-label" type="button" title="กลับ 100%">100%</button>
+              <button id="zoomInBtn" type="button" title="ซูมเข้า">＋</button>
+            </div>
+            <button id="fitSelectionBtn" type="button" title="พอดีสิ่งที่เลือก (Shift+2)">พอดีที่เลือก</button>
+            <button id="resetViewBtn" type="button" title="พอดีกระดาษ (Shift+1)">พอดีกระดาษ</button>
+            <button id="shortcutHelpBtn" class="shortcut-help-btn" type="button" title="ดูคีย์ลัด">? คีย์ลัด</button>
           </div>
         </div>
-        <div id="canvasViewport" class="canvas-viewport">
-          <div id="canvasEmptyState" class="canvas-empty-state hidden">
-            <div class="empty-canvas-card">
-              <span class="empty-canvas-icon">✦</span>
-              <strong>กระดาษพร้อมแล้ว</strong>
-              <small>เริ่มจากข้อความหรือกรอบได้เลย</small>
-              <div><button id="canvasAddTextBtn" type="button">+ ข้อความ</button><button id="canvasAddFrameBtn" type="button">▭ กรอบ</button></div>
-            </div>
+        <div id="canvasWorkarea" class="canvas-workarea">
+          <canvas id="rulerHorizontal" class="canvas-ruler ruler-horizontal" aria-label="ไม้บรรทัดแนวนอน"></canvas>
+          <canvas id="rulerVertical" class="canvas-ruler ruler-vertical" aria-label="ไม้บรรทัดแนวตั้ง"></canvas>
+          <div class="ruler-corner" aria-hidden="true"></div>
+          <div id="canvasViewport" class="canvas-viewport">
+            <div id="canvasStage" class="canvas-stage"><svg id="previewSvg" xmlns="http://www.w3.org/2000/svg" aria-label="Preview กระดาษและชิ้นงาน"></svg></div>
           </div>
-          <div id="canvasStage" class="canvas-stage"><svg id="previewSvg" xmlns="http://www.w3.org/2000/svg" aria-label="Preview กระดาษและชิ้นงาน"></svg></div>
+          <div id="floatingToolbar" class="floating-toolbar hidden" aria-label="คำสั่งชิ้นงานที่เลือก">
+            <span id="floatingSize" class="floating-size">—</span>
+            <button type="button" data-floating-action="aspect" title="ล็อกสัดส่วน">🔗</button>
+            <button type="button" data-floating-action="duplicate" title="ทำสำเนา (Ctrl+D)">⧉</button>
+            <button type="button" data-floating-action="lock" title="ล็อก/ปลดล็อก">🔒</button>
+            <button type="button" data-floating-action="delete" class="danger" title="ลบ (Delete)">⌫</button>
+          </div>
+          <div id="canvasContextMenu" class="canvas-context-menu hidden" role="menu">
+            <button type="button" data-context-action="duplicate">⧉ <span>ทำสำเนา</span><kbd>Ctrl+D</kbd></button>
+            <button type="button" data-context-action="lock">🔒 <span>ล็อก / ปลดล็อก</span></button>
+            <div class="context-separator"></div>
+            <button type="button" data-context-action="center">◎ <span>จัดกึ่งกลางกระดาษ</span></button>
+            <button type="button" data-context-action="front">↑ <span>นำขึ้นหน้า</span></button>
+            <button type="button" data-context-action="back">↓ <span>ส่งไปด้านหลัง</span></button>
+            <div class="context-separator"></div>
+            <button type="button" data-context-action="delete" class="danger">⌫ <span>ลบ</span><kbd>Del</kbd></button>
+          </div>
         </div>
         <div class="canvas-footer">
           <span>ลากชิ้นงานออกนอกกระดาษได้เพื่อพักไว้ก่อนจัดวาง</span>
@@ -238,7 +260,7 @@
           <div class="arrange-card precision-card">
             <div class="precision-head">
               <span class="arrange-label">ตำแหน่งและขนาด</span>
-              <small id="transformScope" class="precision-scope">ยังไม่ได้เลือกชิ้นงาน</small>
+              <div class="precision-head-actions"><button id="aspectLockBtn" class="aspect-lock-btn" type="button" title="ล็อก W/H ให้คงสัดส่วน">🔗 สัดส่วน</button><small id="transformScope" class="precision-scope">ยังไม่ได้เลือกชิ้นงาน</small></div>
             </div>
             <div class="grid two precision-grid">
               <label class="field">X
@@ -308,6 +330,18 @@
         <button id="preflightEditableBtn" class="export-editable-btn" type="button">ส่งไปแก้ต่อใน Corel</button>
         <button id="preflightCutReadyBtn" class="export-cutready-btn" type="button">ไฟล์พร้อมตัด</button>
         <button id="preflightExportBtn" class="primary-btn export-advanced-btn" type="button">SVG 1:1</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="shortcutPanel" class="shortcut-panel hidden" role="dialog" aria-modal="true" aria-labelledby="shortcutTitle">
+    <div class="shortcut-card">
+      <div class="shortcut-head"><div><span class="eyebrow">Canvas controls</span><h2 id="shortcutTitle">คีย์ลัดและการลาก</h2></div><button id="shortcutCloseBtn" type="button" aria-label="ปิด">×</button></div>
+      <div class="shortcut-grid">
+        <section><strong>สร้าง / เลือก</strong><p><kbd>T</kbd> เพิ่มข้อความ</p><p><kbd>R</kbd> เพิ่มกรอบ</p><p><kbd>Shift</kbd> + Click เพิ่ม/ลด Selection</p><p>ลากพื้นที่ว่าง ครอบเลือกหลายชิ้น</p><p><kbd>Ctrl+A</kbd> เลือกทั้งหมด</p><p><kbd>Tab</kbd> / <kbd>Shift+Tab</kbd> เลือกถัดไป/ก่อนหน้า</p></section>
+        <section><strong>ลาก / ปรับขนาด</strong><p><kbd>Shift</kbd> + ลาก ล็อกแนวนอน/แนวตั้ง</p><p><kbd>Ctrl</kbd> + ลาก ทำสำเนาแล้วลาก</p><p><kbd>Alt</kbd> + ลาก ปิด Snap ชั่วคราว</p><p><kbd>Shift</kbd> + Resize รักษาสัดส่วน</p><p><kbd>Alt</kbd> + Resize ย่อ/ขยายจากกึ่งกลาง</p><p><kbd>Shift</kbd> + หมุน ล็อกทุก 15°</p></section>
+        <section><strong>มุมมอง</strong><p>กดล้อเมาส์ค้าง + ลาก = Pan</p><p><kbd>Space</kbd> + ลาก = Pan</p><p><kbd>Ctrl</kbd> + Wheel = Zoom</p><p><kbd>Shift+1</kbd> พอดีกระดาษ</p><p><kbd>Shift+2</kbd> พอดีสิ่งที่เลือก</p><p><kbd>Ctrl+0</kbd> กลับ 100%</p></section>
+        <section><strong>แก้ไข</strong><p><kbd>Ctrl+D</kbd> ทำสำเนา</p><p><kbd>Ctrl+C / Ctrl+V</kbd> คัดลอก / วาง</p><p><kbd>Arrow</kbd> ขยับ 1 mm</p><p><kbd>Shift+Arrow</kbd> ขยับ 10 mm</p><p><kbd>Enter</kbd> แก้ข้อความ</p><p><kbd>Delete</kbd> ลบ</p></section>
       </div>
     </div>
   </div>

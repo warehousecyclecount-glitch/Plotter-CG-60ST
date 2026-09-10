@@ -6,7 +6,7 @@ test('Cut Ready export converts text to real SVG paths from local font outline d
   await page.addInitScript(() => localStorage.clear());
   await page.goto('http://127.0.0.1:4173/v3-preview.html');
   await page.waitForFunction(()=>Boolean(window.__StickerV3Diagnostics&&window.opentype));
-  await page.click('#canvasAddTextBtn');
+  await page.click('#addItemBtn');
   await page.locator('.job-text').first().click();
   await page.fill('#jobText','A');
   await page.dispatchEvent('#jobText','input');
@@ -37,7 +37,7 @@ test('Cut Ready blocks objects outside paper instead of relying on SVG clipping'
   await page.addInitScript(() => localStorage.clear());
   await page.goto('http://127.0.0.1:4173/v3-preview.html');
   await page.waitForFunction(()=>Boolean(window.__StickerV3Diagnostics));
-  await page.click('#canvasAddTextBtn');
+  await page.click('#addItemBtn');
   await page.locator('.job-text').first().click();
   await page.click('#arrangeTab');
   await page.fill('#positionX','-50');await page.dispatchEvent('#positionX','input');
