@@ -31,6 +31,7 @@
           <button id="openProjectBtn" type="button" title="เปิดไฟล์งาน">เปิดงาน</button>
           <button id="saveProjectBtn" type="button" title="บันทึกไฟล์งาน (Ctrl+S)">บันทึกงาน</button>
           <input id="openProjectInput" type="file" accept=".json,.cg60st.json,application/json" hidden>
+          <input id="cutReadyFontInput" type="file" accept=".ttf,.otf,.woff,font/ttf,font/otf,font/woff" multiple hidden>
           <span id="autosaveStatus" class="autosave-status">Autosave พร้อม</span>
         </div>
         <div class="unit-switch" aria-label="หน่วยวัด">
@@ -40,7 +41,8 @@
         <div class="export-actions">
           <button id="preflightBtn" class="export-check-btn" type="button">ตรวจงาน</button>
           <button id="exportEditableBtn" class="export-editable-btn" type="button">ส่งไปแก้ต่อใน Corel</button>
-          <button id="exportBtn" class="primary-btn" type="button">SVG 1:1</button>
+          <button id="exportCutReadyBtn" class="export-cutready-btn" type="button">ไฟล์พร้อมตัด</button>
+          <button id="exportBtn" class="primary-btn export-advanced-btn" type="button" title="SVG 1:1 แบบเดิม">SVG 1:1</button>
         </div>
       </div>
     </header>
@@ -264,12 +266,14 @@
       <div class="preflight-actions">
         <button id="calibrationBtn" class="export-check-btn" type="button">ไฟล์ทดสอบ 100 mm</button>
         <button id="preflightEditableBtn" class="export-editable-btn" type="button">ส่งไปแก้ต่อใน Corel</button>
-        <button id="preflightExportBtn" class="primary-btn" type="button">SVG 1:1</button>
+        <button id="preflightCutReadyBtn" class="export-cutready-btn" type="button">ไฟล์พร้อมตัด</button>
+        <button id="preflightExportBtn" class="primary-btn export-advanced-btn" type="button">SVG 1:1</button>
       </div>
     </div>
   </div>
 
   <div id="toast" class="toast hidden"></div>
+  <script src="js/vendor/opentype.min.js"></script>
   <script src="js/model-v3.js"></script>
   <script src="js/design-ops-v3.js"></script>
   <script src="js/app-v3.js"></script>

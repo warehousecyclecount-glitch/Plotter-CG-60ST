@@ -13,7 +13,7 @@
     dims:$('dimensionsEnabled'), svg:$('previewSvg'), viewport:$('canvasViewport'), status:$('statusBadge'), selectionLabel:$('selectionLabel'), paperSummary:$('paperSummary'),
     arrangeTab:$('arrangeTab'), layersTab:$('layersTab'), layersView:$('layersView'), arrangeView:$('arrangeView'), layerList:$('layerList'), autoArrange:$('autoArrangeBtn'), autoArrangeTop:$('autoArrangeTopBtn'),
     transformScope:$('transformScope'), posX:$('positionX'), posY:$('positionY'), posW:$('positionW'), posH:$('positionH'), posRotation:$('positionRotation'), snapOn:$('snapEnabled'), snapDistance:$('snapDistance'),
-    margin:$('layoutMargin'), gap:$('layoutGap'), resetView:$('resetViewBtn'), export:$('exportBtn'), exportEditable:$('exportEditableBtn'), preflight:$('preflightBtn'), preflightPanel:$('preflightPanel'), preflightClose:$('preflightCloseBtn'), preflightSummary:$('preflightSummary'), preflightList:$('preflightList'), preflightEditable:$('preflightEditableBtn'), preflightExport:$('preflightExportBtn'), calibration:$('calibrationBtn'), newProject:$('newProjectBtn'), openProject:$('openProjectBtn'), openProjectInput:$('openProjectInput'), saveProject:$('saveProjectBtn'), autosaveStatus:$('autosaveStatus'), toast:$('toast'),
+    margin:$('layoutMargin'), gap:$('layoutGap'), resetView:$('resetViewBtn'), export:$('exportBtn'), exportEditable:$('exportEditableBtn'), exportCutReady:$('exportCutReadyBtn'), preflight:$('preflightBtn'), preflightPanel:$('preflightPanel'), preflightClose:$('preflightCloseBtn'), preflightSummary:$('preflightSummary'), preflightList:$('preflightList'), preflightEditable:$('preflightEditableBtn'), preflightCutReady:$('preflightCutReadyBtn'), preflightExport:$('preflightExportBtn'), calibration:$('calibrationBtn'), cutReadyFontInput:$('cutReadyFontInput'), newProject:$('newProjectBtn'), openProject:$('openProjectBtn'), openProjectInput:$('openProjectInput'), saveProject:$('saveProjectBtn'), autosaveStatus:$('autosaveStatus'), toast:$('toast'),
     undo:$('undoBtn'), redo:$('redoBtn'), copy:$('copyBtn'), paste:$('pasteBtn'), duplicate:$('duplicateBtn'), bold:$('boldBtn'), del:$('deleteBtn')
   };
 
@@ -31,6 +31,8 @@
     snap:{enabled:true,threshold:3,guides:[]},
     persistence:{ready:false,restoring:false,timer:null,lastProjectJson:null,storageAvailable:true}
   };
+
+  const outlineFonts={faces:null,queryTried:false,uploaded:[],cache:new Map(),lastPermissionError:null};
 
   const unit=()=>state.project.unit;
   const toMm=v=>unit()==='cm'?v*10:v;
@@ -427,6 +429,61 @@
   }
   function buildStandardSvg(){const paper=state.project.paper,content=exportContent((o,p)=>textMarkup(o,p,false));return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${paper.w}mm" height="${paper.h}mm" viewBox="0 0 ${paper.w} ${paper.h}" overflow="hidden"><defs><clipPath id="paperClip"><rect x="0" y="0" width="${paper.w}" height="${paper.h}"/></clipPath></defs><g clip-path="url(#paperClip)">${content.join('')}</g></svg>`;}
   function buildEditableSvg(){const paper=state.project.paper,content=exportContent(editableTextMarkup);return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${paper.w}mm" height="${paper.h}mm" viewBox="0 0 ${paper.w} ${paper.h}" overflow="visible"><title>CG-60ST Corel Editable</title><!-- Text stays as SVG text; no textLength, lengthAdjust or clipPath. -->${content.join('')}</svg>`;}
+
+  function normFontName(v){return String(v||'').trim().toLowerCase().replace(/\s+/g,' ');}
+  function wantedFontDescriptor(o){return {family:o.font.family==='sans-serif'?'Arial':o.font.family,bold:String(o.font.weight)==='700'};}
+  function faceIsBold(face){return /bold|semibold|demi|black/i.test(String(face?.style||'')+' '+String(face?.fullName||''));}
+  function fontNameValues(record){return Object.values(record||{}).flatMap(v=>typeof v==='string'?[v]:v&&typeof v==='object'?Object.values(v).filter(x=>typeof x==='string'):[]);}
+  function uploadedFontInfo(font){const families=fontNameValues(font?.names?.fontFamily).concat(fontNameValues(font?.names?.preferredFamily)),full=fontNameValues(font?.names?.fullName),styles=fontNameValues(font?.names?.fontSubfamily).concat(fontNameValues(font?.names?.preferredSubfamily));return {font,names:[...families,...full].map(normFontName),bold:/bold|semibold|demi|black/i.test(styles.join(' ')+' '+full.join(' '))};}
+  async function parseOutlineBlob(blob){if(!globalThis.opentype?.parse)throw new Error('OpenType engine ไม่พร้อม');const buf=await blob.arrayBuffer();return globalThis.opentype.parse(buf);}
+  async function getLocalFontFaces(){
+    if(outlineFonts.queryTried)return outlineFonts.faces||[];
+    outlineFonts.queryTried=true;
+    if(!('queryLocalFonts' in window)){outlineFonts.faces=[];return outlineFonts.faces;}
+    try{outlineFonts.faces=await window.queryLocalFonts();outlineFonts.lastPermissionError=null;}
+    catch(e){outlineFonts.faces=[];outlineFonts.lastPermissionError=e;}
+    return outlineFonts.faces;
+  }
+  async function resolveOutlineFont(o){
+    const wanted=wantedFontDescriptor(o),key=normFontName(wanted.family)+'|'+(wanted.bold?'700':'400');
+    if(outlineFonts.cache.has(key))return outlineFonts.cache.get(key);
+    const target=normFontName(wanted.family),uploaded=outlineFonts.uploaded.find(x=>x.names.includes(target)&&x.bold===wanted.bold)||outlineFonts.uploaded.find(x=>x.names.includes(target));
+    if(uploaded){outlineFonts.cache.set(key,uploaded.font);return uploaded.font;}
+    const faces=await getLocalFontFaces(),same=faces.filter(f=>normFontName(f.family)===target||normFontName(f.fullName)===target);
+    const face=same.find(f=>faceIsBold(f)===wanted.bold)||same[0];
+    if(!face)return null;
+    try{const font=await parseOutlineBlob(await face.blob());outlineFonts.cache.set(key,font);return font;}
+    catch(_){return null;}
+  }
+  function transformedPathData(path,sx,sy,tx,ty){
+    const n=v=>String(round(v,4)),px=x=>n(x*sx+tx),py=y=>n(y*sy+ty);let d='';
+    for(const c of path.commands||[]){if(c.type==='M'||c.type==='L')d+=c.type+px(c.x)+' '+py(c.y);else if(c.type==='C')d+='C'+px(c.x1)+' '+py(c.y1)+' '+px(c.x2)+' '+py(c.y2)+' '+px(c.x)+' '+py(c.y);else if(c.type==='Q')d+='Q'+px(c.x1)+' '+py(c.y1)+' '+px(c.x)+' '+py(c.y);else if(c.type==='Z')d+='Z';}
+    return d;
+  }
+  function cutReadyTextMarkup(o,p,font){
+    const t=transformFor(p,o),lines=linesOf(o.text),lineH=o.size.h/Math.max(1,lines.length),maxR=Math.max(.1,...lines.map(line=>measureLine(line,o.font.family,o.font.weight).ratio||.1));let body='';
+    lines.forEach((line,i)=>{if(!line)return;const m=measureLine(line,o.font.family,o.font.weight),targetW=Math.max(.5,o.size.w*(m.ratio/maxR)),path=font.getPath(line,0,0,1000,{kerning:true}),b=path.getBoundingBox(),bw=Math.max(.001,b.x2-b.x1),bh=Math.max(.001,b.y2-b.y1),sx=targetW/bw,sy=lineH/bh,tx=t.x-b.x1*sx,ty=t.y+i*lineH-b.y1*sy,d=transformedPathData(path,sx,sy,tx,ty);if(d)body+=`<path d="${d}" fill="#000"/>`;});
+    return rotGroup(`<g data-sticker-object="${esc(o.id)}" data-kind="text-path">${body}</g>`,t.rotation,t.x+o.size.w/2,t.y+o.size.h/2);
+  }
+  async function buildCutReadySvg(){
+    const paper=state.project.paper,content=[],missing=new Map();
+    for(const p of state.project.placements){const d=M.getDesign(state.project,p.designId);if(!d||d.visible===false)continue;for(const o of M.getObjectsForDesign(state.project,d.id)){if(o.visible===false)continue;if(o.type==='frame'){content.push(frameMarkup(o,p,false));continue;}if(o.type==='text'){const font=await resolveOutlineFont(o);if(!font){const w=wantedFontDescriptor(o);missing.set(normFontName(w.family)+'|'+(w.bold?'700':'400'),`${w.family}${w.bold?' Bold':''}`);continue;}content.push(cutReadyTextMarkup(o,p,font));}}}
+    if(missing.size)return {svg:null,missing:[...missing.values()]};
+    return {svg:`<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${paper.w}mm" height="${paper.h}mm" viewBox="0 0 ${paper.w} ${paper.h}" overflow="visible"><title>CG-60ST Cut Ready Paths</title><!-- All text is converted to vector paths from the user's local font data. Font bytes are never embedded. -->${content.join('')}</svg>`,missing:[]};
+  }
+  async function loadOutlineFontFiles(files){
+    let ok=0;for(const file of files||[]){try{const font=await parseOutlineBlob(file),info=uploadedFontInfo(font);outlineFonts.uploaded.push(info);outlineFonts.cache.clear();ok++;}catch(_){}}
+    return ok;
+  }
+  async function exportCutReadySvg({allowPicker=true}={}){
+    const r=preflightReport();if(!r.validation.ok||r.outsideCount){openPreflight();toast(r.outsideCount?'ไฟล์พร้อมตัดต้องวางทุกชิ้นให้อยู่ในกระดาษก่อน':'มีข้อผิดพลาด ต้องตรวจงานก่อน Export');return false;}
+    try{
+      const result=await buildCutReadySvg();
+      if(result.missing.length){if(allowPicker&&E.cutReadyFontInput){toast(`ต้องใช้โครงร่างฟอนต์: ${result.missing.join(', ')}`);E.cutReadyFontInput.click();}else toast(`ยังขาดฟอนต์: ${result.missing.join(', ')}`);return false;}
+      downloadSvg(result.svg,'CG60ST-Cut-Ready-Paths.svg','สร้างไฟล์พร้อมตัดแบบ Curve/Path แล้ว');return true;
+    }catch(e){toast(`สร้างไฟล์พร้อมตัดไม่ได้: ${e.message||e}`);return false;}
+  }
+
   function buildCalibrationSvg(){return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="120mm" height="120mm" viewBox="0 0 120 120"><title>CG-60ST 100 mm Calibration</title><rect x="10" y="10" width="100" height="100" fill="none" stroke="#000" stroke-width="0.3"/><line x1="10" y1="60" x2="110" y2="60" stroke="#000" stroke-width="0.3"/><line x1="60" y1="10" x2="60" y2="110" stroke="#000" stroke-width="0.3"/></svg>`;}
   function exportCalibrationSvg(){downloadSvg(buildCalibrationSvg(),'CG60ST-Calibration-100mm.svg','สร้างไฟล์ทดสอบ 100 mm แล้ว');}
   function preflightReport(){
@@ -438,7 +495,7 @@
   }
   function renderPreflight(){
     const r=preflightReport(),blocked=!r.validation.ok,warn=r.outsideCount>0||r.overlapCount>0;E.preflightSummary.className=`preflight-summary ${blocked?'error':warn?'warn':'ok'}`;E.preflightSummary.textContent=blocked?'พบข้อผิดพลาดที่ต้องแก้ก่อน Export':warn?'Export ได้ แต่มีจุดที่ควรตรวจ':'พร้อม Export';
-    const rows=[];rows.push(`<li class="${blocked?'bad':'good'}"><strong>โครงสร้างงาน</strong><span>${blocked?esc(r.validation.errors.join(' · ')):'ถูกต้อง'}</span></li>`);rows.push(`<li class="${r.outsideCount?'warn':'good'}"><strong>นอกกระดาษ</strong><span>${r.outsideCount?r.outsideCount+' ชิ้น':'ไม่มี'}</span></li>`);rows.push(`<li class="${r.overlapCount?'warn':'good'}"><strong>ชิ้นงานซ้อนกัน</strong><span>${r.overlapCount?r.overlapCount+' คู่':'ไม่มี'}</span></li>`);if(r.textCount)rows.push(`<li class="info"><strong>ข้อความ Editable</strong><span>${r.textCount} ชิ้น · เครื่อง Corel ควรมีฟอนต์เดียวกัน</span></li>`);rows.push(`<li class="info"><strong>Export SVG 1:1</strong><span>ตัดส่วนที่อยู่นอกกระดาษด้วย clip</span></li>`);rows.push(`<li class="info"><strong>ส่งไปแก้ต่อใน Corel</strong><span>ไม่ใช้ clipPath และไม่ใช้ textLength/lengthAdjust เพื่อให้แก้ข้อความต่อได้ง่ายขึ้น</span></li>`);E.preflightList.innerHTML=rows.join('');E.preflightEditable.disabled=blocked;E.preflightExport.disabled=blocked;return r;
+    const rows=[];rows.push(`<li class="${blocked?'bad':'good'}"><strong>โครงสร้างงาน</strong><span>${blocked?esc(r.validation.errors.join(' · ')):'ถูกต้อง'}</span></li>`);rows.push(`<li class="${r.outsideCount?'warn':'good'}"><strong>นอกกระดาษ</strong><span>${r.outsideCount?r.outsideCount+' ชิ้น · ต้องแก้ก่อนใช้ไฟล์พร้อมตัด':'ไม่มี'}</span></li>`);rows.push(`<li class="${r.overlapCount?'warn':'good'}"><strong>ชิ้นงานซ้อนกัน</strong><span>${r.overlapCount?r.overlapCount+' คู่':'ไม่มี'}</span></li>`);if(r.textCount)rows.push(`<li class="info"><strong>ไฟล์พร้อมตัด</strong><span class="font-outline-note">แปลงข้อความเป็น Curve/Path จากฟอนต์ในเครื่อง · ไม่ส่งไฟล์ฟอนต์ออกจากเครื่อง</span></li>`);rows.push(`<li class="info"><strong>ส่งไปแก้ต่อใน Corel</strong><span>คงข้อความเป็น Text เพื่อแก้ต่อได้</span></li>`);rows.push(`<li class="info"><strong>SVG 1:1</strong><span>โหมดเดิมสำหรับ compatibility และตัดส่วนที่อยู่นอกกระดาษด้วย clip</span></li>`);E.preflightList.innerHTML=rows.join('');E.preflightEditable.disabled=blocked;E.preflightExport.disabled=blocked;if(E.preflightCutReady)E.preflightCutReady.disabled=blocked||r.outsideCount>0;return r;
   }
   function openPreflight(){renderPreflight();E.preflightPanel.classList.remove('hidden');}
   function closePreflight(){E.preflightPanel.classList.add('hidden');}
@@ -456,7 +513,7 @@
   E.posX?.addEventListener('input',()=>applyPrecisionInput('x'));E.posY?.addEventListener('input',()=>applyPrecisionInput('y'));E.posW?.addEventListener('input',()=>applyPrecisionInput('w'));E.posH?.addEventListener('input',()=>applyPrecisionInput('h'));E.posRotation?.addEventListener('input',()=>applyPrecisionInput('rotation'));E.snapOn?.addEventListener('change',()=>{refreshSnapSettings();state.snap.guides=[];renderCanvas();});E.snapDistance?.addEventListener('input',refreshSnapSettings);
   E.fitFrame.addEventListener('click',()=>{const d=activeDesign(),t=d&&textFor(d.id);if(!d||!t)return;pushHistory();M.fitFrameToText(state.project,d.id);renderAll();});
   E.centerText?.addEventListener('click',()=>{const d=activeDesign(),t=d&&textFor(d.id),f=d&&frameFor(d.id);if(!d||!t||!f)return;pushHistory();Ops.centerTextInFrame(state.project,d.id);renderAll(false);toast('จัดข้อความกลางกรอบแล้ว');});
-  E.addItem.addEventListener('click',addItem);E.addLayer.addEventListener('click',addItem);E.addFrame?.addEventListener('click',addFrameDesign);E.addLayerFrame?.addEventListener('click',addFrameDesign);E.addTextToFrame?.addEventListener('click',addTextIntoActiveFrame);E.layersTab.addEventListener('click',()=>setTab('layers'));E.arrangeTab.addEventListener('click',()=>setTab('arrange'));E.autoArrange.addEventListener('click',()=>autoArrange(true,true));E.autoArrangeTop.addEventListener('click',()=>autoArrange(true,true));E.margin.addEventListener('input',()=>{refreshLayoutSettings();scheduleAutosave();});E.gap.addEventListener('input',()=>{refreshLayoutSettings();scheduleAutosave();});E.resetView.addEventListener('click',()=>{E.viewport.scrollTo({left:0,top:0,behavior:'smooth'});toast('ปรับมุมมองแล้ว');});E.export.addEventListener('click',exportSvg);E.exportEditable?.addEventListener('click',exportEditableSvg);E.preflight?.addEventListener('click',openPreflight);E.preflightClose?.addEventListener('click',closePreflight);E.preflightPanel?.addEventListener('pointerdown',e=>{if(e.target===E.preflightPanel)closePreflight();});E.preflightEditable?.addEventListener('click',()=>{exportEditableSvg();if(!E.preflightEditable.disabled)closePreflight();});E.preflightExport?.addEventListener('click',()=>{exportSvg();if(!E.preflightExport.disabled)closePreflight();});E.calibration?.addEventListener('click',exportCalibrationSvg);E.newProject?.addEventListener('click',newProject);E.openProject?.addEventListener('click',()=>E.openProjectInput?.click());E.openProjectInput?.addEventListener('change',()=>openProjectFile(E.openProjectInput.files?.[0]));E.saveProject?.addEventListener('click',saveProjectFile);E.dims.addEventListener('change',()=>renderCanvas());
+  E.addItem.addEventListener('click',addItem);E.addLayer.addEventListener('click',addItem);E.addFrame?.addEventListener('click',addFrameDesign);E.addLayerFrame?.addEventListener('click',addFrameDesign);E.addTextToFrame?.addEventListener('click',addTextIntoActiveFrame);E.layersTab.addEventListener('click',()=>setTab('layers'));E.arrangeTab.addEventListener('click',()=>setTab('arrange'));E.autoArrange.addEventListener('click',()=>autoArrange(true,true));E.autoArrangeTop.addEventListener('click',()=>autoArrange(true,true));E.margin.addEventListener('input',()=>{refreshLayoutSettings();scheduleAutosave();});E.gap.addEventListener('input',()=>{refreshLayoutSettings();scheduleAutosave();});E.resetView.addEventListener('click',()=>{E.viewport.scrollTo({left:0,top:0,behavior:'smooth'});toast('ปรับมุมมองแล้ว');});E.export.addEventListener('click',exportSvg);E.exportEditable?.addEventListener('click',exportEditableSvg);E.exportCutReady?.addEventListener('click',()=>exportCutReadySvg());E.preflight?.addEventListener('click',openPreflight);E.preflightClose?.addEventListener('click',closePreflight);E.preflightPanel?.addEventListener('pointerdown',e=>{if(e.target===E.preflightPanel)closePreflight();});E.preflightEditable?.addEventListener('click',()=>{exportEditableSvg();if(!E.preflightEditable.disabled)closePreflight();});E.preflightCutReady?.addEventListener('click',async()=>{if(await exportCutReadySvg()&&!E.preflightCutReady.disabled)closePreflight();});E.preflightExport?.addEventListener('click',()=>{exportSvg();if(!E.preflightExport.disabled)closePreflight();});E.calibration?.addEventListener('click',exportCalibrationSvg);E.cutReadyFontInput?.addEventListener('change',async()=>{const files=[...(E.cutReadyFontInput.files||[])],count=await loadOutlineFontFiles(files);E.cutReadyFontInput.value='';if(!count){toast('อ่านไฟล์ฟอนต์ไม่ได้');return;}toast('อ่านฟอนต์แล้ว '+count+' ไฟล์');await exportCutReadySvg({allowPicker:false});});E.newProject?.addEventListener('click',newProject);E.openProject?.addEventListener('click',()=>E.openProjectInput?.click());E.openProjectInput?.addEventListener('change',()=>openProjectFile(E.openProjectInput.files?.[0]));E.saveProject?.addEventListener('click',saveProjectFile);E.dims.addEventListener('change',()=>renderCanvas());
   E.undo.addEventListener('click',undo);E.redo.addEventListener('click',redo);E.copy.addEventListener('click',copySelected);E.paste.addEventListener('click',pasteItem);E.duplicate?.addEventListener('click',duplicateSelected);E.bold.addEventListener('click',toggleBold);E.del.addEventListener('click',deleteSelected);
   document.querySelectorAll('[data-arrange]').forEach(b=>b.addEventListener('click',()=>arrangeSelected(b.dataset.arrange)));document.querySelectorAll('.unit-switch button').forEach(b=>b.addEventListener('click',()=>switchUnit(b.dataset.unit)));
 
@@ -464,5 +521,5 @@
   M.addTextDesign(state.project,'EXIT',{w:70,h:30,qty:1,padding:{x:5,y:5}});state.activeDesignId=a.design.id;M.ensurePlacements(state.project);autoArrange(false,false);state.selected={placementId:null,objectId:null};setTab('layers');syncUnitButtons();if(!restoreAutosave())renderAll();state.persistence.ready=true;if(state.persistence.storageAvailable&&state.persistence.lastProjectJson===null)scheduleAutosave(true);
 
   // Exposed only for integration diagnostics/tests on the V3 preview. Production UI never depends on this.
-  globalThis.__StickerV3Diagnostics=Object.freeze({schemaVersion:M.SCHEMA_VERSION,features:{independentFrame:true,frameFirstTextLater:true,frameRotation:true,designBehavior:true,rigidArrange:true,sharedResizeAnchors:true,precisionControls:true,snapGuides:true,arrowNudge:true,corelEditableExport:true,preflight:true,persistence:true,autosave:true,calibration100mm:true},getProject:()=>M.deepClone(state.project),validate:()=>M.validateProject(state.project),forceAutosave:()=>scheduleAutosave(true)});
+  globalThis.__StickerV3Diagnostics=Object.freeze({schemaVersion:M.SCHEMA_VERSION,features:{independentFrame:true,frameFirstTextLater:true,frameRotation:true,designBehavior:true,rigidArrange:true,sharedResizeAnchors:true,precisionControls:true,snapGuides:true,arrowNudge:true,corelEditableExport:true,cutReadyPathExport:true,localFontAccess:true,fontFileFallback:true,preflight:true,persistence:true,autosave:true,calibration100mm:true},getProject:()=>M.deepClone(state.project),validate:()=>M.validateProject(state.project),forceAutosave:()=>scheduleAutosave(true)});
 })();

@@ -22,6 +22,8 @@ branch `v3-foundation` ยังคงเป็นสายพัฒนาสำ
 - Preflight ตรวจโครงสร้าง, งานนอกกระดาษ, งานซ้อนกัน
 - Export `SVG 1:1` สำหรับ workflow เดิม
 - Export `ส่งไปแก้ต่อใน Corel` โดยคง SVG text และลด attribute ที่รบกวนการแก้ข้อความ
+- Export `ไฟล์พร้อมตัด` แปลงข้อความเป็น Curve/Path ด้วยโครงร่างฟอนต์จริงจากเครื่องผู้ใช้บน Edge/Chrome Desktop; ถ้า Browser อ่านฟอนต์ในเครื่องไม่ได้ ระบบให้เลือกไฟล์ .ttf/.otf/.woff จากเครื่องเป็น fallback
+- การสร้าง Curve/Path ประมวลผลใน Browser เท่านั้น ไม่อัปโหลดหรือฝังไฟล์ฟอนต์ลง SVG/Repository
 - ไฟล์ Calibration 100×100 mm สำหรับเช็กสเกลจริงใน Corel
 - Save Project เป็น `.cg60st.json`
 - Open Project และรองรับ legacy V2 state ที่มี `items/placements`
@@ -29,16 +31,21 @@ branch `v3-foundation` ยังคงเป็นสายพัฒนาสำ
 - `Ctrl+S` บันทึก Project
 - Generated single-file `StickerLayout-V3-Standalone.html` จาก source V3 ชุดเดียว
 
-## สิ่งที่ตั้งใจไม่ทำแบบเดาสุ่ม
+## Export Final
 
-V3 ยัง **ไม่เรียกไฟล์ข้อความว่า Cut Ready Curve/Path** เพราะ Browser ไม่สามารถดึง glyph outline ของ Arial/Tahoma/Verdana/Impact จาก system font ออกมาเป็น path ได้อย่างถูกต้องโดยไม่มี font outline source จริง และไม่ควรฝังไฟล์ฟอนต์ proprietary ลง repo
+V3 มีสอง workflow หลักที่แยกชัดเจน:
 
-ดังนั้น workflow ที่ปลอดภัยตอนนี้คือ:
+1. `ส่งไปแก้ต่อใน Corel` — ข้อความยังเป็น Text เพื่อแก้คำ/ฟอนต์ต่อได้
+2. `ไฟล์พร้อมตัด` — ข้อความถูกแปลงเป็น SVG Curve/Path จาก glyph outline ของฟอนต์จริงในเครื่องผู้ใช้ แล้วจึงส่ง Corel/FineCut โดยไม่ต้อง Convert to Curves ซ้ำ
+
+สำหรับ Edge/Chrome Desktop เว็บใช้ Local Font Access API หลังผู้ใช้อนุญาตสิทธิ์อ่านฟอนต์ หาก API ใช้ไม่ได้หรือฟอนต์หาไม่เจอ ระบบจะเปิดตัวเลือกไฟล์ฟอนต์จากเครื่องเป็น fallback ข้อมูลฟอนต์ถูกอ่านเฉพาะใน Browser และไม่ถูกอัปโหลดหรือฝังลงไฟล์ผลลัพธ์
+
+Workflow ที่แนะนำ:
 
 1. ออกแบบ/จัด Layout ในเว็บ
-2. ใช้ `ส่งไปแก้ต่อใน Corel` ถ้าต้องแก้ข้อความต่อ
-3. ตรวจขนาดด้วย Calibration 100 mm
-4. Convert to Curves ใน Corel ก่อน FineCut เมื่อจำเป็น
+2. กด `ตรวจงาน`
+3. ถ้าต้องแก้ข้อความต่อ เลือก `ส่งไปแก้ต่อใน Corel`
+4. ถ้าจัดงานเสร็จแล้ว เลือก `ไฟล์พร้อมตัด`
 5. FineCut → Mimaki CG-60ST
 
 ## Verification อัตโนมัติ
@@ -51,6 +58,7 @@ CI ของ `v3-foundation` ตรวจ:
 - Frame-first browser workflow
 - Precision / Snap
 - Corel-editable SVG structure + Preflight
+- Cut Ready Curve/Path export pipeline + local font outline resolution
 - Save/Open + Autosave
 - Generated Standalone แบบไฟล์เดียว
 
