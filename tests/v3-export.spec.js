@@ -6,7 +6,7 @@ test('preflight and Corel-editable SVG keep export behavior explicit', async ({ 
   page.on('pageerror', err => errors.push(String(err)));
   await page.goto('http://127.0.0.1:4173/v3-preview.html');
   await page.waitForFunction(() => Boolean(window.__StickerV3Diagnostics));
-  await page.click('#canvasAddTextBtn');
+  await page.click('#addItemBtn');
 
   await expect(page.locator('#preflightBtn')).toBeVisible();
   await page.click('#exportMenuBtn');

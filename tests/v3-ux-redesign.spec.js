@@ -6,7 +6,7 @@ test('redesigned workspace starts empty, centered and beginner friendly', async 
   await page.waitForFunction(() => Boolean(window.__StickerV3Diagnostics));
   const project = await page.evaluate(() => window.__StickerV3Diagnostics.getProject());
   expect(project.designs).toHaveLength(0);
-  await expect(page.locator('#canvasEmptyState')).toBeVisible();
+  await expect(page.locator('#canvasEmptyState')).toHaveCount(0);
   await expect(page.locator('#emptyEditor')).toBeVisible();
   await expect(page.locator('#editorTitle')).toHaveText('ยังไม่มีชิ้นงาน');
   await expect(page.locator('#fileMenuBtn')).toBeVisible();
@@ -19,14 +19,14 @@ test('redesigned workspace starts empty, centered and beginner friendly', async 
   expect(Math.abs((paper.x + paper.width/2) - (vp.x + vp.width/2))).toBeLessThan(3);
   expect(Math.abs((paper.y + paper.height/2) - (vp.y + vp.height/2))).toBeLessThan(3);
 
-  await page.click('#canvasAddTextBtn');
+  await page.click('#addItemBtn');
   let p = await page.evaluate(() => window.__StickerV3Diagnostics.getProject());
   expect(p.designs).toHaveLength(1);
   await page.locator('.job-text').click();
   await page.keyboard.press('Delete');
   p = await page.evaluate(() => window.__StickerV3Diagnostics.getProject());
   expect(p.designs).toHaveLength(0);
-  await expect(page.locator('#canvasEmptyState')).toBeVisible();
+  await expect(page.locator('#canvasEmptyState')).toHaveCount(0);
 });
 
 test('sidebars resize and middle mouse pans the canvas', async ({ page }) => {
@@ -61,7 +61,7 @@ test('sidebars resize and middle mouse pans the canvas', async ({ page }) => {
 test('font picker previews on hover without committing until click', async ({ page }) => {
   await page.addInitScript(() => localStorage.clear());
   await page.goto('http://127.0.0.1:4173/v3-preview.html');
-  await page.click('#canvasAddTextBtn');
+  await page.click('#addItemBtn');
   await page.click('#fontPickerBtn');
   const impact = page.locator('#fontPickerMenu [data-font="Impact"]');
   await impact.hover();

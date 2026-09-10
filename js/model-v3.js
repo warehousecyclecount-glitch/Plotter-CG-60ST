@@ -33,6 +33,9 @@
         margin: nonNegative(options.layout?.margin, DEFAULT_LAYOUT.margin),
         gap: nonNegative(options.layout?.gap, DEFAULT_LAYOUT.gap)
       },
+      workspace: {
+        guides: { x: [], y: [] }
+      },
       objects: [],
       designs: [],
       placements: [],
@@ -94,6 +97,8 @@
         h: positive(options.size?.h ?? options.h, 50)
       },
       visible: options.visible !== false,
+      locked: options.locked === true,
+      aspectLocked: options.aspectLocked === true,
       legacyId: options.legacyId || null
     };
     project.objects.push(object);
@@ -111,6 +116,8 @@
         h: positive(options.size?.h ?? options.h, 70)
       },
       visible: options.visible !== false,
+      locked: options.locked === true,
+      aspectLocked: options.aspectLocked === true,
       legacyId: options.legacyId || null
     };
     project.objects.push(object);
@@ -129,6 +136,7 @@
         y: nonNegative(options.padding?.y ?? options.padY, 5)
       },
       visible: options.visible !== false,
+      locked: options.locked === true,
       legacyId: options.legacyId || null
     };
     project.designs.push(design);
@@ -263,6 +271,7 @@
             id: nextId(project, 'placement'),
             designId: design.id,
             copy,
+            locked: false,
             transforms: {}
           };
         }
@@ -407,6 +416,7 @@
         id: old.id || nextId(project, 'placement'),
         designId,
         copy: Math.max(0, Math.floor(finite(old.copy, 0))),
+        locked: false,
         transforms: {}
       };
       placement.transforms[ids.textId] = {
@@ -533,6 +543,13 @@
 
   function parseProject(json) {
     const project = typeof json === 'string' ? JSON.parse(json) : deepClone(json);
+    project.workspace ||= { guides:{ x:[], y:[] } };
+    project.workspace.guides ||= { x:[], y:[] };
+    if (!Array.isArray(project.workspace.guides.x)) project.workspace.guides.x = [];
+    if (!Array.isArray(project.workspace.guides.y)) project.workspace.guides.y = [];
+    (project.objects || []).forEach(o => { o.locked = o.locked === true; o.aspectLocked = o.aspectLocked === true; });
+    (project.designs || []).forEach(d => { d.locked = d.locked === true; });
+    (project.placements || []).forEach(p => { p.locked = p.locked === true; });
     const validation = validateProject(project);
     if (!validation.ok) throw new Error(`Project validation failed: ${validation.errors.join('; ')}`);
     return project;

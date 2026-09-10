@@ -124,3 +124,17 @@ test('movePlacementBoundsTo preserves internal text-frame offset', () => {
 });
 
 console.log('\nAll design-ops-v3 tests passed.');
+
+
+test('V4 edge handles resize only one axis and center-resize keeps center', () => {
+  const p = M.createProject();
+  const { design, frame } = M.addFrameDesign(p, { w:100,h:60,qty:2 });
+  const copies = p.placements.filter(x => x.designId === design.id).sort((a,b)=>a.copy-b.copy);
+  const before = copies.map(pl => ({...pl.transforms[frame.id]}));
+  Ops.resizeSharedObject(p, design.id, frame.id, 140, 60, 'e');
+  assert.strictEqual(frame.size.w, 140); assert.strictEqual(frame.size.h, 60);
+  copies.forEach((pl,i)=>assert.strictEqual(pl.transforms[frame.id].x, before[i].x));
+  const centers = copies.map(pl => ({x:pl.transforms[frame.id].x+70,y:pl.transforms[frame.id].y+30}));
+  Ops.resizeSharedObject(p, design.id, frame.id, 180, 90, 'se', {fromCenter:true});
+  copies.forEach((pl,i)=>{ assert.ok(Math.abs((pl.transforms[frame.id].x+90)-centers[i].x)<1e-8); assert.ok(Math.abs((pl.transforms[frame.id].y+45)-centers[i].y)<1e-8); });
+});

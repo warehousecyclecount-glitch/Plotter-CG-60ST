@@ -94,3 +94,8 @@ Automated browser tests ตรวจระบบเว็บได้ แต่�
 Checklist อยู่ที่ `docs/V3-USER-ACCEPTANCE.md`
 
 หลัง Cloudflare Pages Deploy จาก `main` แล้ว ให้ทดสอบ workflow จริงจาก `https://plotter-cg-60st.pages.dev/` และรายงานผลที่ต่างจาก Preview/ขนาดจริงกลับมาเพื่อแก้จากหลักฐาน Runtime จริง
+
+
+## V4 Canvas Interaction
+
+Canvas editor now follows familiar design-tool interaction patterns: 8 resize handles, multi/marquee selection, Shift/Ctrl/Alt drag modifiers, object locking, right-click menu, zoom/pan, rulers and draggable guides, aspect-ratio locking, floating selection toolbar, Smart Guide equal-spacing hints, and a discoverable keyboard-shortcut panel. Production promotion still requires the complete regression suite.

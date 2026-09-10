@@ -125,3 +125,16 @@ test('validation rejects broken object references', () => {
 });
 
 console.log('\nAll model-v3 tests passed.');
+
+
+test('V4 workspace guides and lock/aspect flags survive serialization', () => {
+  const p = M.createProject({ paper:{w:300,h:200} });
+  const { design, text } = M.addTextDesign(p, 'LOCK', { w:80,h:30 });
+  const pl = p.placements.find(x => x.designId === design.id);
+  text.locked = true; text.aspectLocked = true; design.locked = false; pl.locked = true;
+  p.workspace.guides.x.push(25); p.workspace.guides.y.push(40);
+  const parsed = M.parseProject(M.serializeProject(p, false));
+  assert.deepStrictEqual(parsed.workspace.guides, { x:[25], y:[40] });
+  assert.strictEqual(parsed.objects.find(o => o.id === text.id).aspectLocked, true);
+  assert.strictEqual(parsed.placements.find(x => x.id === pl.id).locked, true);
+});
