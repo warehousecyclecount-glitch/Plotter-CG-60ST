@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/apply-v3-ux-redesign.yml'
       - 'scripts/apply-v3-ux-redesign.py'
+      - 'scripts/fix-v3-ux-redesign.py'
       - 'tests/v3-export.spec.js'
       - 'tests/v3-persistence.spec.js'
       - 'tests/v3-cutready.spec.js'
@@ -31,7 +32,9 @@ jobs:
           node-version: '24'
 
       - name: Apply redesign
-        run: python3 scripts/apply-v3-ux-redesign.py
+        run: |
+          python3 scripts/apply-v3-ux-redesign.py
+          python3 scripts/fix-v3-ux-redesign.py
 
       - name: Build standalone
         run: node scripts/build-v3-standalone.js
@@ -52,6 +55,7 @@ jobs:
           grep -q 'id="fileMenuBtn"' index.html
           grep -q 'id="leftPanelResizer"' index.html
           grep -q 'id="fontPickerMenu"' index.html
+          grep -q 'id="canvasStage"' index.html
           grep -q 'middleMousePan:true' js/app-v3.js
           grep -q 'fontHoverPreview:true' js/app-v3.js
           grep -q 'emptyProject:true' js/app-v3.js
@@ -91,12 +95,12 @@ jobs:
         run: |
           rm -rf node_modules test-results
           rm -f package-lock.json
-          rm -f scripts/apply-v3-ux-redesign.py
+          rm -f scripts/apply-v3-ux-redesign.py scripts/fix-v3-ux-redesign.py
 
       - name: Commit verified redesign
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html v3-preview.html css/ux-redesign.css js/app-v3.js scripts/build-v3-standalone.js StickerLayout-V3-Standalone.html tests/v3-ux-redesign.spec.js README.md scripts/apply-v3-ux-redesign.py
+          git add index.html v3-preview.html css/ux-redesign.css js/app-v3.js scripts/build-v3-standalone.js StickerLayout-V3-Standalone.html tests/v3-ux-redesign.spec.js README.md scripts/apply-v3-ux-redesign.py scripts/fix-v3-ux-redesign.py
           git commit -m "feat: redesign full V3 workspace UX [skip ci]"
           git push origin HEAD:v3-ux-redesign
