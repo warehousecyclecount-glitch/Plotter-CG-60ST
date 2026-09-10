@@ -25,4 +25,7 @@
 @media(max-width:1050px){.toolbar-actions #fitSelectionBtn,.toolbar-actions .shortcut-help-btn{display:none}.shortcut-grid{grid-template-columns:1fr}}
 @media(max-width:760px){:root{--ruler-size:20px}.canvas-ruler{display:none}.ruler-corner{display:none}.canvas-workarea .canvas-viewport{left:0;top:0}.floating-toolbar{display:none!important}}
 
-.frame-hit{fill:none;stroke:transparent;stroke-width:10;pointer-events:stroke;cursor:move;vector-effect:non-scaling-stroke}
+
+.frame-shape{pointer-events:all}
+
+.floating-toolbar.below{transform:translate(-50%,0)}
