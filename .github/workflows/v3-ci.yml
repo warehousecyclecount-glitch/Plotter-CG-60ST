@@ -20,14 +20,15 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Syntax check model
-        run: node --check js/model-v3.js
-
-      - name: Syntax check design operations
-        run: node --check js/design-ops-v3.js
-
-      - name: Syntax check editor
-        run: node --check js/app-v3.js
+      - name: Syntax checks
+        run: |
+          node --check js/model-v3.js
+          node --check js/design-ops-v3.js
+          node --check js/app-v3.js
+          node --check scripts/build-v3-standalone.js
+          node --check tests/v3-export.spec.js
+          node --check tests/v3-persistence.spec.js
+          node --check tests/v3-standalone.spec.js
 
       - name: Run V3 model regression tests
         run: node tests/model-v3.test.js
@@ -43,6 +44,19 @@ jobs:
           grep -q 'css/v3-preview.css' v3-preview.html
           if grep -q 'js/app-v2.js' v3-preview.html; then
             echo 'v3-preview.html must not load app-v2.js'
+            exit 1
+          fi
+
+      - name: Verify generated standalone is current
+        run: |
+          cp StickerLayout-V3-Standalone.html /tmp/standalone-before.html
+          node scripts/build-v3-standalone.js
+          cmp -s StickerLayout-V3-Standalone.html /tmp/standalone-before.html || {
+            echo 'StickerLayout-V3-Standalone.html is out of sync with V3 source'
+            exit 1
+          }
+          if grep -Eq 'src="js/|href="css/' StickerLayout-V3-Standalone.html; then
+            echo 'Standalone still has external project CSS/JS dependency'
             exit 1
           fi
 
@@ -76,5 +90,5 @@ jobs:
           cat /tmp/v3-http.log
           exit 1
 
-      - name: Run real-browser V3 smoke suite
-        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js --reporter=line --workers=1
+      - name: Run full V3 release-candidate browser suite
+        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js --reporter=line --workers=1
