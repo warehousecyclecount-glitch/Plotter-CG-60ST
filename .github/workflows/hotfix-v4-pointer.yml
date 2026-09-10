@@ -5,131 +5,62 @@ on:
     branches:
       - v4-interaction-hotfix
     paths:
-      - '.github/workflows/hotfix-v4-pointer.yml'
+      - .github/workflows/hotfix-v4-pointer.yml
+      - scripts/hotfix-v4-pointer.py
 
 permissions:
   contents: write
 
 jobs:
-  hotfix-test-commit:
+  verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout hotfix branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: v4-interaction-hotfix
           fetch-depth: 0
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
-
-      - name: Apply deterministic frame-edge pointer routing
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('js/app-v3.js')
-          s=p.read_text(encoding='utf-8')
-
-          old=''';const hit=interactive?`<rect class="frame-hit" data-object="${o.id}" data-placement="${p.id}" x="${t.x}" y="${t.y}" width="${o.size.w}" height="${o.size.h}"/>`:'';return rotGroup(visible+hit,'''
-          if old not in s:
-              raise SystemExit('frame-hit runtime target not found')
-          s=s.replace(old,';return rotGroup(visible,',1)
-          s=s.replace("E.svg.querySelectorAll('.job-text,.frame-shape,.frame-hit').forEach", "E.svg.querySelectorAll('.job-text,.frame-shape').forEach",1)
-
-          marker="  function startRotateSelection(e){"
-          helper="""  function resolvePointerObject(e){
-            const direct=e.target.closest?.('.job-text,.frame-shape');
-            if(!direct)return null;
-            const placementId=direct.dataset.placement,p=placementById(placementId);
-            if(!p)return null;
-            const frame=frameFor(p.designId);
-            if(frame){
-              const tr=transformFor(p,frame),pt=svgPoint(e),cx=tr.x+frame.size.w/2,cy=tr.y+frame.size.h/2,local=tr.rotation?localPoint(pt,cx,cy,tr.rotation):pt,m=E.svg.getScreenCTM(),scale=m?Math.max(.001,Math.hypot(m.a,m.b)):1,tol=7/scale;
-              const inside=local.x>=tr.x-tol&&local.x<=tr.x+frame.size.w+tol&&local.y>=tr.y-tol&&local.y<=tr.y+frame.size.h+tol;
-              const edge=Math.min(Math.abs(local.x-tr.x),Math.abs(local.x-(tr.x+frame.size.w)),Math.abs(local.y-tr.y),Math.abs(local.y-(tr.y+frame.size.h)));
-              if(inside&&edge<=tol)return{placementId,objectId:frame.id};
-            }
-            return{placementId,objectId:direct.dataset.object};
-          }
-"""
-          if marker not in s:
-              raise SystemExit('startRotateSelection marker not found')
-          s=s.replace(marker,helper+marker,1)
-
-          old="const target=e.target.closest?.('.job-text,.frame-shape');if(target){const pid=target.dataset.placement,oid=target.dataset.object;"
-          new="const hit=resolvePointerObject(e);if(hit){const pid=hit.placementId,oid=hit.objectId;"
-          if old not in s:
-              raise SystemExit('context routing target not found')
-          s=s.replace(old,new,1)
-
-          old="E.svg.querySelectorAll('.job-text,.frame-shape').forEach(el=>el.addEventListener('pointerdown',e=>startMove(e,el.dataset.placement,el.dataset.object)));"
-          new="E.svg.querySelectorAll('.job-text,.frame-shape').forEach(el=>el.addEventListener('pointerdown',e=>{const hit=resolvePointerObject(e);if(hit)startMove(e,hit.placementId,hit.objectId);}));"
-          if old not in s:
-              raise SystemExit('pointerdown routing target not found')
-          s=s.replace(old,new,1)
-          p.write_text(s,encoding='utf-8')
-
-          css=Path('css/canvas-v4.css')
-          c=css.read_text(encoding='utf-8')
-          c=c.replace('\n.frame-hit{fill:none;stroke:transparent;stroke-width:10;pointer-events:stroke;cursor:move;vector-effect:non-scaling-stroke}\n','\n')
-          css.write_text(c,encoding='utf-8')
-          PY
-
+      - name: Apply hotfix
+        run: python3 scripts/hotfix-v4-pointer.py
       - name: Rebuild standalone
         run: node scripts/build-v3-standalone.js
-
       - name: Syntax checks
         run: |
           node --check js/model-v3.js
           node --check js/design-ops-v3.js
           node --check js/app-v3.js
           node --check scripts/build-v3-standalone.js
-          node --check tests/v4-canvas-interactions.spec.js
-
-      - name: Run model and geometry regression
+      - name: Model and geometry regression
         run: |
           node tests/model-v3.test.js
           node tests/design-ops-v3.test.js
-
-      - name: Install Playwright
-        run: npm install --no-save @playwright/test@1.55.0
-
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Start static server
+      - name: Install browser tests
         run: |
-          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/v4-hotfix-http.log 2>&1 &
+          npm install --no-save @playwright/test@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start test server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/hotfix-http.log 2>&1 &
           for i in {1..20}; do
             if curl -fsS http://127.0.0.1:4173/v3-preview.html >/dev/null; then exit 0; fi
             sleep 1
           done
-          cat /tmp/v4-hotfix-http.log
+          cat /tmp/hotfix-http.log
           exit 1
-
-      - name: Run two previously failing pointer regressions
+      - name: Focused pointer regression
         run: npx playwright test tests/v3-design-behavior.spec.js tests/v3-precision.spec.js --reporter=line --workers=1
-
-      - name: Run full production browser suite
+      - name: Full browser regression
         run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-cutready.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js tests/v3-ux-redesign.spec.js tests/v4-canvas-interactions.spec.js --reporter=line --workers=1
-
-      - name: Verify standalone matches source hotfix
+      - name: Standalone consistency
         run: |
-          if grep -q 'class="frame-hit"' StickerLayout-V3-Standalone.html; then
-            echo 'Standalone still contains obsolete frame-hit target'
-            exit 1
-          fi
+          test -z "$(grep -n 'class=\"frame-hit\"' StickerLayout-V3-Standalone.html || true)"
           grep -q 'function resolvePointerObject(e)' StickerLayout-V3-Standalone.html
-
-      - name: Cleanup test runtime
+      - name: Commit verified hotfix
         run: |
           rm -rf node_modules test-results
           rm -f package-lock.json
-
-      - name: Commit verified hotfix
-        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add js/app-v3.js css/canvas-v4.css StickerLayout-V3-Standalone.html
