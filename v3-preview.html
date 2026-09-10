@@ -8,41 +8,56 @@
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/enhancements.css">
   <link rel="stylesheet" href="css/v3-preview.css">
+  <link rel="stylesheet" href="css/ux-redesign.css">
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <div class="brand">
-        <span class="brand-dot"></span>
-        <div><strong>Sticker Layout</strong><small>Mimaki CG-60ST · V3 Preview</small></div>
+        <span class="brand-mark">CG</span>
+        <div><strong>Sticker Layout</strong><small>Mimaki CG-60ST</small></div>
       </div>
-      <div class="topbar-center">
-        <label>กระดาษ</label>
+
+      <div class="paper-control" aria-label="ขนาดกระดาษ">
+        <span class="paper-control-label">กระดาษ</span>
         <div class="paper-size-inline">
           <input id="paperWidth" type="number" min="1" step="0.1" value="600" aria-label="ความกว้างกระดาษ">
           <span>×</span>
           <input id="paperHeight" type="number" min="1" step="0.1" value="300" aria-label="ความยาวกระดาษ">
           <b class="unit-inline">mm</b>
         </div>
-      </div>
-      <div class="top-actions">
-        <div class="project-actions" aria-label="จัดการไฟล์งาน">
-          <button id="newProjectBtn" type="button" title="สร้างงานใหม่">＋ งานใหม่</button>
-          <button id="openProjectBtn" type="button" title="เปิดไฟล์งาน">เปิดงาน</button>
-          <button id="saveProjectBtn" type="button" title="บันทึกไฟล์งาน (Ctrl+S)">บันทึกงาน</button>
-          <input id="openProjectInput" type="file" accept=".json,.cg60st.json,application/json" hidden>
-          <input id="cutReadyFontInput" type="file" accept=".ttf,.otf,.woff,font/ttf,font/otf,font/woff" multiple hidden>
-          <span id="autosaveStatus" class="autosave-status">Autosave พร้อม</span>
-        </div>
         <div class="unit-switch" aria-label="หน่วยวัด">
           <button type="button" data-unit="mm" class="active">mm</button>
           <button type="button" data-unit="cm">cm</button>
         </div>
-        <div class="export-actions">
-          <button id="preflightBtn" class="export-check-btn" type="button">ตรวจงาน</button>
-          <button id="exportEditableBtn" class="export-editable-btn" type="button">ส่งไปแก้ต่อใน Corel</button>
-          <button id="exportCutReadyBtn" class="export-cutready-btn" type="button">ไฟล์พร้อมตัด</button>
-          <button id="exportBtn" class="primary-btn export-advanced-btn" type="button" title="SVG 1:1 แบบเดิม">SVG 1:1</button>
+      </div>
+
+      <div class="top-actions">
+        <div class="menu-wrap file-menu-wrap">
+          <button id="fileMenuBtn" class="top-menu-btn" type="button" aria-haspopup="true" aria-expanded="false">ไฟล์ <span>⌄</span></button>
+          <div id="fileMenu" class="top-menu hidden" role="menu">
+            <button id="newProjectBtn" class="menu-item" type="button"><span class="menu-icon">＋</span><span><strong>งานใหม่</strong><small>เริ่มจากกระดาษเปล่า</small></span></button>
+            <button id="openProjectBtn" class="menu-item" type="button"><span class="menu-icon">↗</span><span><strong>เปิดไฟล์งาน…</strong><small>.cg60st.json</small></span></button>
+            <button id="saveProjectBtn" class="menu-item" type="button"><span class="menu-icon">↓</span><span><strong>ดาวน์โหลดไฟล์งาน</strong><small>เก็บไว้เปิดต่อภายหลัง</small></span></button>
+            <div class="menu-separator"></div>
+            <button id="restoreProjectBtn" class="menu-item" type="button"><span class="menu-icon">↶</span><span><strong>กู้คืนงานล่าสุด</strong><small>จาก Autosave ใน Browser นี้</small></span></button>
+            <div class="menu-status"><span class="autosave-dot"></span><span id="autosaveStatus">บันทึกอัตโนมัติเปิดอยู่</span></div>
+            <input id="openProjectInput" type="file" accept=".json,.cg60st.json,application/json" hidden>
+            <input id="cutReadyFontInput" type="file" accept=".ttf,.otf,.woff,font/ttf,font/otf,font/woff" multiple hidden>
+          </div>
+        </div>
+
+        <button id="preflightBtn" class="top-secondary-btn" type="button">ตรวจงาน</button>
+
+        <div class="menu-wrap export-menu-wrap">
+          <button id="exportMenuBtn" class="top-primary-btn" type="button" aria-haspopup="true" aria-expanded="false">ส่งออก <span>⌄</span></button>
+          <div id="exportMenu" class="top-menu export-menu hidden" role="menu">
+            <button id="exportCutReadyBtn" class="menu-item featured" type="button"><span class="menu-icon">✦</span><span><strong>ไฟล์พร้อมตัด</strong><small>Curve / Path สำหรับ FineCut</small></span></button>
+            <button id="exportEditableBtn" class="menu-item" type="button"><span class="menu-icon">A</span><span><strong>แก้ต่อใน Corel</strong><small>คงข้อความเป็น Text</small></span></button>
+            <button id="exportBtn" class="menu-item" type="button"><span class="menu-icon">◇</span><span><strong>SVG 1:1</strong><small>โหมด Compatibility เดิม</small></span></button>
+            <div class="menu-separator"></div>
+            <button id="calibrationMenuBtn" class="menu-item" type="button"><span class="menu-icon">□</span><span><strong>ไฟล์ทดสอบ 100 mm</strong><small>ตรวจสเกลก่อนตัดจริง</small></span></button>
+          </div>
         </div>
       </div>
     </header>
@@ -57,7 +72,14 @@
           </div>
         </div>
 
-        <div class="editor-scroll">
+        <div id="emptyEditor" class="empty-editor hidden">
+          <div class="empty-editor-icon">＋</div>
+          <strong>เริ่มสร้างชิ้นงาน</strong>
+          <p>เพิ่มข้อความหรือกรอบก่อน แล้วค่อยกำหนดขนาดและจัดวาง</p>
+          <div class="empty-editor-actions"><button id="emptyAddTextBtn" type="button">+ ข้อความ</button><button id="emptyAddFrameBtn" type="button">▭ กรอบ</button></div>
+        </div>
+
+        <div id="editorScroll" class="editor-scroll">
           <section id="textEditorSection" class="field-section">
             <label class="field full">ข้อความ
               <textarea id="jobText" class="text-input" rows="3" placeholder="ข้อความที่ต้องการตัด" spellcheck="false">WAREHOUSE</textarea>
@@ -72,15 +94,23 @@
               </label>
             </div>
             <div class="grid two">
-              <label class="field">ฟอนต์
-                <select id="fontFamily">
-                  <option value="Arial">Arial</option>
-                  <option value="Arial Narrow">Arial Narrow</option>
-                  <option value="Tahoma">Tahoma</option>
-                  <option value="Verdana">Verdana</option>
-                  <option value="Impact">Impact</option>
-                  <option value="sans-serif">System Sans</option>
-                </select>
+              <label class="field font-field">ฟอนต์
+                <div class="font-picker" id="fontPicker">
+                  <button id="fontPickerBtn" class="font-picker-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
+                    <span id="fontPickerLabel" class="font-picker-label">Arial</span><span class="font-picker-chevron">⌄</span>
+                  </button>
+                  <div id="fontPickerMenu" class="font-picker-menu hidden" role="listbox">
+                    <button type="button" data-font="Arial" style="font-family:Arial,sans-serif"><span>Arial</span><em>Aa 123</em></button>
+                    <button type="button" data-font="Arial Narrow" style="font-family:'Arial Narrow',Arial,sans-serif"><span>Arial Narrow</span><em>Aa 123</em></button>
+                    <button type="button" data-font="Tahoma" style="font-family:Tahoma,sans-serif"><span>Tahoma</span><em>Aa 123</em></button>
+                    <button type="button" data-font="Verdana" style="font-family:Verdana,sans-serif"><span>Verdana</span><em>Aa 123</em></button>
+                    <button type="button" data-font="Impact" style="font-family:Impact,sans-serif"><span>Impact</span><em>Aa 123</em></button>
+                    <button type="button" data-font="sans-serif" style="font-family:sans-serif"><span>System Sans</span><em>Aa 123</em></button>
+                  </div>
+                  <select id="fontFamily" class="font-native-select" tabindex="-1" aria-hidden="true">
+                    <option value="Arial">Arial</option><option value="Arial Narrow">Arial Narrow</option><option value="Tahoma">Tahoma</option><option value="Verdana">Verdana</option><option value="Impact">Impact</option><option value="sans-serif">System Sans</option>
+                  </select>
+                </div>
               </label>
               <label class="field">รูปแบบ
                 <select id="fontWeight"><option value="400">ปกติ</option><option value="700">หนา</option></select>
@@ -136,6 +166,7 @@
           </section>
         </div>
       </aside>
+      <div id="leftPanelResizer" class="panel-resizer panel-resizer-left" role="separator" aria-label="ปรับความกว้างแถบซ้าย"></div>
 
       <section class="canvas-column">
         <div class="edit-toolbar" aria-label="เครื่องมือแก้ไข">
@@ -165,7 +196,15 @@
           </div>
         </div>
         <div id="canvasViewport" class="canvas-viewport">
-          <svg id="previewSvg" xmlns="http://www.w3.org/2000/svg" aria-label="Preview กระดาษและชิ้นงาน"></svg>
+          <div id="canvasEmptyState" class="canvas-empty-state hidden">
+            <div class="empty-canvas-card">
+              <span class="empty-canvas-icon">✦</span>
+              <strong>กระดาษพร้อมแล้ว</strong>
+              <small>เริ่มจากข้อความหรือกรอบได้เลย</small>
+              <div><button id="canvasAddTextBtn" type="button">+ ข้อความ</button><button id="canvasAddFrameBtn" type="button">▭ กรอบ</button></div>
+            </div>
+          </div>
+          <div id="canvasStage" class="canvas-stage"><svg id="previewSvg" xmlns="http://www.w3.org/2000/svg" aria-label="Preview กระดาษและชิ้นงาน"></svg></div>
         </div>
         <div class="canvas-footer">
           <span>ลากชิ้นงานออกนอกกระดาษได้เพื่อพักไว้ก่อนจัดวาง</span>
@@ -174,6 +213,7 @@
         </div>
       </section>
 
+      <div id="rightPanelResizer" class="panel-resizer panel-resizer-right" role="separator" aria-label="ปรับความกว้างแถบขวา"></div>
       <aside class="right-panel panel">
         <div class="right-title-row"><h2>จัดการงาน</h2><span class="panel-grip">⋮⋮</span></div>
         <div class="tabs">

@@ -9,10 +9,17 @@ test('generated V3 standalone runs from one local HTML file', async ({ page }) =
   await page.goto(url);
   await page.waitForFunction(() => Boolean(window.__StickerV3Diagnostics));
   await expect(page.locator('#addFrameBtn')).toBeVisible();
+  await expect(page.locator('#fileMenuBtn')).toBeVisible();
+  await expect(page.locator('#exportMenuBtn')).toBeVisible();
+  await page.click('#fileMenuBtn');
   await expect(page.locator('#saveProjectBtn')).toBeVisible();
+  await page.click('#fileMenuBtn');
+  await page.click('#exportMenuBtn');
   await expect(page.locator('#exportEditableBtn')).toBeVisible();
+  await page.click('#exportMenuBtn');
   await page.click('#addFrameBtn');
   expect((await page.evaluate(() => window.__StickerV3Diagnostics.validate())).ok).toBe(true);
   expect(await page.evaluate(() => window.__StickerV3Diagnostics.features.persistence)).toBe(true);
+  expect(await page.evaluate(() => window.__StickerV3Diagnostics.features.uxRedesign)).toBe(true);
   expect(errors).toEqual([]);
 });

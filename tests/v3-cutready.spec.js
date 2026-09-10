@@ -3,8 +3,10 @@ const fs = require('fs');
 
 test('Cut Ready export converts text to real SVG paths from local font outline data', async ({ page }) => {
   const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+  await page.addInitScript(() => localStorage.clear());
   await page.goto('http://127.0.0.1:4173/v3-preview.html');
   await page.waitForFunction(()=>Boolean(window.__StickerV3Diagnostics&&window.opentype));
+  await page.click('#canvasAddTextBtn');
   await page.locator('.job-text').first().click();
   await page.fill('#jobText','A');
   await page.dispatchEvent('#jobText','input');
@@ -17,6 +19,7 @@ test('Cut Ready export converts text to real SVG paths from local font outline d
     window.queryLocalFonts=async()=>[{family:'Arial',fullName:'Arial',postscriptName:'ArialMT',style:'Regular',blob:async()=>new Blob([bytes])}];
   });
   await page.click('#autoArrangeTopBtn');
+  await page.click('#exportMenuBtn');
   const [dl]=await Promise.all([page.waitForEvent('download'),page.click('#exportCutReadyBtn')]);
   expect(dl.suggestedFilename()).toBe('CG60ST-Cut-Ready-Paths.svg');
   const svg=fs.readFileSync(await dl.path(),'utf8');
@@ -31,8 +34,10 @@ test('Cut Ready export converts text to real SVG paths from local font outline d
 });
 
 test('Cut Ready blocks objects outside paper instead of relying on SVG clipping', async ({ page }) => {
+  await page.addInitScript(() => localStorage.clear());
   await page.goto('http://127.0.0.1:4173/v3-preview.html');
   await page.waitForFunction(()=>Boolean(window.__StickerV3Diagnostics));
+  await page.click('#canvasAddTextBtn');
   await page.locator('.job-text').first().click();
   await page.click('#arrangeTab');
   await page.fill('#positionX','-50');await page.dispatchEvent('#positionX','input');
