@@ -1,4 +1,4 @@
-name: V3 Production CI
+name: Production CI
 
 on:
   push:
@@ -7,6 +7,8 @@ on:
       - v3-foundation
       - v3-final
       - v3-ux-redesign
+      - v4-canvas-interactions
+      - v4-ci-hardening
   pull_request:
     branches:
       - main
@@ -34,11 +36,12 @@ jobs:
           node --check tests/v3-persistence.spec.js
           node --check tests/v3-standalone.spec.js
           node --check tests/v3-ux-redesign.spec.js
+          node --check tests/v4-canvas-interactions.spec.js
 
-      - name: Run V3 model regression tests
+      - name: Run model regression tests
         run: node tests/model-v3.test.js
 
-      - name: Run V3 design geometry tests
+      - name: Run design geometry tests
         run: node tests/design-ops-v3.test.js
 
       - name: Verify production and preview runtime wiring
@@ -51,22 +54,33 @@ jobs:
           grep -q 'js/app-v3.js' v3-preview.html
           grep -q 'css/v3-preview.css' v3-preview.html
           grep -q 'css/ux-redesign.css' v3-preview.html
+          grep -q 'css/canvas-v4.css' v3-preview.html
           grep -q 'js/vendor/opentype.min.js' index.html
           grep -q 'js/model-v3.js' index.html
           grep -q 'js/design-ops-v3.js' index.html
           grep -q 'js/app-v3.js' index.html
           grep -q 'css/ux-redesign.css' index.html
+          grep -q 'css/canvas-v4.css' index.html
           grep -q 'id="fileMenuBtn"' index.html
           grep -q 'id="exportMenuBtn"' index.html
           grep -q 'id="leftPanelResizer"' index.html
           grep -q 'id="rightPanelResizer"' index.html
           grep -q 'id="canvasStage"' index.html
           grep -q 'id="fontPickerMenu"' index.html
+          grep -q 'id="floatingToolbar"' index.html
+          grep -q 'id="canvasContextMenu"' index.html
+          grep -q 'id="rulerHorizontal"' index.html
           grep -q 'cutReadyPathExport:true' js/app-v3.js
           grep -q 'uxRedesign:true' js/app-v3.js
           grep -q 'middleMousePan:true' js/app-v3.js
           grep -q 'fontHoverPreview:true' js/app-v3.js
           grep -q 'emptyProject:true' js/app-v3.js
+          grep -q 'eightPointResize:true' js/app-v3.js
+          grep -q 'multiSelect:true' js/app-v3.js
+          grep -q 'contextMenu:true' js/app-v3.js
+          grep -q 'floatingToolbar:true' js/app-v3.js
+          grep -q 'rulers:true' js/app-v3.js
+          grep -q 'userGuides:true' js/app-v3.js
           if grep -q 'WAREHOUSE' js/app-v3.js; then
             echo 'Production runtime must not seed demo WAREHOUSE content'
             exit 1
@@ -89,12 +103,14 @@ jobs:
           cp StickerLayout-V3-Standalone.html /tmp/standalone-before.html
           node scripts/build-v3-standalone.js
           cmp -s StickerLayout-V3-Standalone.html /tmp/standalone-before.html || {
-            echo 'StickerLayout-V3-Standalone.html is out of sync with V3 source'
+            echo 'StickerLayout-V3-Standalone.html is out of sync with production source'
             exit 1
           }
           grep -q 'ไฟล์พร้อมตัด' StickerLayout-V3-Standalone.html
           grep -q 'cutReadyPathExport:true' StickerLayout-V3-Standalone.html
           grep -q 'uxRedesign:true' StickerLayout-V3-Standalone.html
+          grep -q 'floatingToolbar:true' StickerLayout-V3-Standalone.html
+          grep -q 'eightPointResize:true' StickerLayout-V3-Standalone.html
           if grep -Eq 'src="js/|href="css/' StickerLayout-V3-Standalone.html; then
             echo 'Standalone still has external project CSS/JS dependency'
             exit 1
@@ -119,16 +135,16 @@ jobs:
 
       - name: Start static server
         run: |
-          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/v3-http.log 2>&1 &
-          echo $! > /tmp/v3-http.pid
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/production-http.log 2>&1 &
+          echo $! > /tmp/production-http.pid
           for i in {1..20}; do
             if curl -fsS http://127.0.0.1:4173/v3-preview.html >/dev/null; then
               exit 0
             fi
             sleep 1
           done
-          cat /tmp/v3-http.log
+          cat /tmp/production-http.log
           exit 1
 
-      - name: Run full V3 production browser suite
-        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-cutready.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js tests/v3-ux-redesign.spec.js --reporter=line --workers=1
+      - name: Run full production browser suite
+        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-cutready.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js tests/v3-ux-redesign.spec.js tests/v4-canvas-interactions.spec.js --reporter=line --workers=1
