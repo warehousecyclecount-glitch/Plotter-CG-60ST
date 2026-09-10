@@ -29,7 +29,7 @@ jobs:
       - name: Apply V4 patch
         run: python3 scripts/apply-v4-canvas-interactions.py
 
-      - name: Repair generated escapes
+      - name: Repair generated escapes and frame hit target
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -39,7 +39,35 @@ jobs:
           fixed="text?.text?.replace(/\\n/g,' / ')"
           if malformed not in s:
               raise SystemExit('Expected generated newline regex was not found')
-          p.write_text(s.replace(malformed,fixed),encoding='utf-8')
+          s=s.replace(malformed,fixed)
+          old="function frameMarkup(o,p,interactive=true){const t=transformFor(p,o);const inner=`<rect ${interactive?`class=\"frame-shape\" data-object=\"${o.id}\" data-placement=\"${p.id}\"`:''} x=\"${t.x}\" y=\"${t.y}\" width=\"${o.size.w}\" height=\"${o.size.h}\" ${interactive?'':'fill=\"none\" stroke=\"#000\" stroke-width=\"0.3\"'}/>`;return rotGroup(inner,t.rotation,t.x+o.size.w/2,t.y+o.size.h/2);}"
+          new="function frameMarkup(o,p,interactive=true){const t=transformFor(p,o);const visible=`<rect ${interactive?`class=\"frame-shape\" data-object=\"${o.id}\" data-placement=\"${p.id}\"`:''} x=\"${t.x}\" y=\"${t.y}\" width=\"${o.size.w}\" height=\"${o.size.h}\" ${interactive?'':'fill=\"none\" stroke=\"#000\" stroke-width=\"0.3\"'}/>`;const hit=interactive?`<rect class=\"frame-hit\" data-object=\"${o.id}\" data-placement=\"${p.id}\" x=\"${t.x}\" y=\"${t.y}\" width=\"${o.size.w}\" height=\"${o.size.h}\"/>`:'';return rotGroup(visible+hit,t.rotation,t.x+o.size.w/2,t.y+o.size.h/2);}"
+          if old not in s:
+              raise SystemExit('frameMarkup target not found')
+          s=s.replace(old,new)
+          s=s.replace("E.svg.querySelectorAll('.job-text,.frame-shape').forEach", "E.svg.querySelectorAll('.job-text,.frame-shape,.frame-hit').forEach")
+          p.write_text(s,encoding='utf-8')
+
+          css=Path('css/canvas-v4.css')
+          cs=css.read_text(encoding='utf-8')
+          cs += "\n.frame-hit{fill:none;stroke:transparent;stroke-width:10;pointer-events:stroke;cursor:move;vector-effect:non-scaling-stroke}\n"
+          css.write_text(cs,encoding='utf-8')
+          PY
+
+      - name: Update regression expectations for approved V4 UX
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          for name in ['tests/v3-cutready.spec.js','tests/v3-export.spec.js','tests/v3-ux-redesign.spec.js']:
+              p=Path(name); s=p.read_text(encoding='utf-8'); s=s.replace("#canvasAddTextBtn","#addItemBtn"); p.write_text(s,encoding='utf-8')
+
+          p=Path('tests/v3-ux-redesign.spec.js'); s=p.read_text(encoding='utf-8')
+          s=s.replace("await expect(page.locator('#canvasEmptyState')).toBeVisible();", "await expect(page.locator('#canvasEmptyState')).toHaveCount(0);")
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('tests/v4-canvas-interactions.spec.js'); s=p.read_text(encoding='utf-8')
+          s=s.replace("// Aspect lock persists on the object.\n  await page.click('#aspectLockBtn');", "// Aspect lock persists on the object and is exposed in Arrange.\n  await page.click('#arrangeTab');\n  await expect(page.locator('#aspectLockBtn')).toBeVisible();\n  await page.click('#aspectLockBtn');")
+          p.write_text(s,encoding='utf-8')
           PY
 
       - name: Fix test helper names and standalone builder
