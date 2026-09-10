@@ -77,4 +77,4 @@ jobs:
           exit 1
 
       - name: Run real-browser V3 smoke suite
-        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js --reporter=line --workers=1
+        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js --reporter=line --workers=1
