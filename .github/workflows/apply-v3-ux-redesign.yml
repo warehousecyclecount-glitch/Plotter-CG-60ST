@@ -1,0 +1,98 @@
+name: Apply V3 UX Redesign
+
+on:
+  push:
+    branches:
+      - v3-ux-redesign
+    paths:
+      - '.github/workflows/apply-v3-ux-redesign.yml'
+      - 'scripts/apply-v3-ux-redesign.py'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-test-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: v3-ux-redesign
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Apply redesign
+        run: python3 scripts/apply-v3-ux-redesign.py
+
+      - name: Build standalone
+        run: node scripts/build-v3-standalone.js
+
+      - name: Syntax and core regression
+        run: |
+          node --check js/model-v3.js
+          node --check js/design-ops-v3.js
+          node --check js/app-v3.js
+          node --check scripts/build-v3-standalone.js
+          node --check tests/v3-ux-redesign.spec.js
+          node tests/model-v3.test.js
+          node tests/design-ops-v3.test.js
+
+      - name: Verify UI wiring
+        run: |
+          grep -q 'css/ux-redesign.css' index.html
+          grep -q 'id="fileMenuBtn"' index.html
+          grep -q 'id="leftPanelResizer"' index.html
+          grep -q 'id="fontPickerMenu"' index.html
+          grep -q 'middleMousePan:true' js/app-v3.js
+          grep -q 'fontHoverPreview:true' js/app-v3.js
+          grep -q 'emptyProject:true' js/app-v3.js
+          if grep -q 'WAREHOUSE' js/app-v3.js; then
+            echo 'Demo WAREHOUSE seed must not remain in runtime'
+            exit 1
+          fi
+          if grep -q 'ต้องมีอย่างน้อย 1 ชิ้นงาน' js/app-v3.js; then
+            echo 'Last-design deletion guard must be removed'
+            exit 1
+          fi
+          if grep -Eq 'src="js/|href="css/' StickerLayout-V3-Standalone.html; then
+            echo 'Standalone still has external project CSS/JS dependency'
+            exit 1
+          fi
+
+      - name: Install Playwright
+        run: npm install --no-save @playwright/test@1.55.0
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/ux-http.log 2>&1 &
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:4173/v3-preview.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ux-http.log
+          exit 1
+
+      - name: Run full browser regression once at the end
+        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js tests/v3-cutready.spec.js tests/v3-ux-redesign.spec.js --reporter=line --workers=1
+
+      - name: Clean temporary dependencies
+        run: |
+          rm -rf node_modules test-results
+          rm -f package-lock.json
+          rm -f scripts/apply-v3-ux-redesign.py
+
+      - name: Commit verified redesign
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html v3-preview.html css/ux-redesign.css js/app-v3.js scripts/build-v3-standalone.js StickerLayout-V3-Standalone.html tests/v3-ux-redesign.spec.js README.md scripts/apply-v3-ux-redesign.py
+          git commit -m "feat: redesign full V3 workspace UX [skip ci]"
+          git push origin HEAD:v3-ux-redesign
