@@ -35,6 +35,23 @@ jobs:
           cp node_modules/opentype.js/dist/opentype.min.js js/vendor/opentype.min.js
           cp node_modules/opentype.js/LICENSE js/vendor/opentype.LICENSE.txt
 
+      - name: Repair generated patch source quoting
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('scripts/apply-v3-final-cutready.js')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace("toast(`อ่านฟอนต์แล้ว ${count} ไฟล์`)", "toast('อ่านฟอนต์แล้ว '+count+' ไฟล์')")
+          marker="const cutReadyFunctions = String.raw`"
+          start=s.index(marker)+len(marker)
+          end=s.index("\n`;\napp=replaceOnce(app,`  function buildCalibrationSvg(){", start)
+          body=s[start:end]
+          body=body.replace('`','\\`').replace('${','\\${')
+          s=s[:start]+body+s[end:]
+          p.write_text(s,encoding='utf-8')
+          PY
+          node --check scripts/apply-v3-final-cutready.js
+
       - name: Apply final Cut Ready implementation
         run: node scripts/apply-v3-final-cutready.js
 
