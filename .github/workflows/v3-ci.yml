@@ -1,0 +1,94 @@
+name: V3 Foundation CI
+
+on:
+  push:
+    branches:
+      - v3-foundation
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Syntax checks
+        run: |
+          node --check js/model-v3.js
+          node --check js/design-ops-v3.js
+          node --check js/app-v3.js
+          node --check scripts/build-v3-standalone.js
+          node --check tests/v3-export.spec.js
+          node --check tests/v3-persistence.spec.js
+          node --check tests/v3-standalone.spec.js
+
+      - name: Run V3 model regression tests
+        run: node tests/model-v3.test.js
+
+      - name: Run V3 design geometry tests
+        run: node tests/design-ops-v3.test.js
+
+      - name: Verify preview runtime wiring
+        run: |
+          grep -q 'js/model-v3.js' v3-preview.html
+          grep -q 'js/design-ops-v3.js' v3-preview.html
+          grep -q 'js/app-v3.js' v3-preview.html
+          grep -q 'css/v3-preview.css' v3-preview.html
+          if grep -q 'js/app-v2.js' v3-preview.html; then
+            echo 'v3-preview.html must not load app-v2.js'
+            exit 1
+          fi
+
+      - name: Verify generated standalone is current
+        run: |
+          cp StickerLayout-V3-Standalone.html /tmp/standalone-before.html
+          node scripts/build-v3-standalone.js
+          cmp -s StickerLayout-V3-Standalone.html /tmp/standalone-before.html || {
+            echo 'StickerLayout-V3-Standalone.html is out of sync with V3 source'
+            exit 1
+          }
+          if grep -Eq 'src="js/|href="css/' StickerLayout-V3-Standalone.html; then
+            echo 'Standalone still has external project CSS/JS dependency'
+            exit 1
+          fi
+
+  browser-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Playwright test runner
+        run: npm install --no-save @playwright/test@1.55.0
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/v3-http.log 2>&1 &
+          echo $! > /tmp/v3-http.pid
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:4173/v3-preview.html >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/v3-http.log
+          exit 1
+
+      - name: Run full V3 release-candidate browser suite
+        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js --reporter=line --workers=1
