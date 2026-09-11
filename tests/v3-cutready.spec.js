@@ -28,7 +28,8 @@ test('Cut Ready export converts text to real SVG paths from local font outline d
   expect(svg).not.toContain('<text ');
   expect(svg).not.toContain('<tspan');
   expect(svg).not.toContain('<clipPath');
-  expect(svg).toContain('width="600mm"');
+  expect(svg).toContain('width="680mm"');
+  expect(svg).toContain('height="520mm"');
   expect(await page.evaluate(()=>window.__StickerV3Diagnostics.features.cutReadyPathExport)).toBe(true);
   expect(errors).toEqual([]);
 });
