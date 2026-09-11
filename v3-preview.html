@@ -86,16 +86,23 @@
             <div class="grid two">
               <label class="field font-field">ฟอนต์
                 <div class="font-picker" id="fontPicker">
-                  <button id="fontPickerBtn" class="font-picker-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
+                  <button id="fontPickerBtn" class="font-picker-btn" type="button" aria-haspopup="dialog" aria-expanded="false">
                     <span id="fontPickerLabel" class="font-picker-label">Arial</span><span class="font-picker-chevron">⌄</span>
                   </button>
-                  <div id="fontPickerMenu" class="font-picker-menu hidden" role="listbox">
-                    <button type="button" data-font="Arial" style="font-family:Arial,sans-serif"><span>Arial</span><em>Aa 123</em></button>
-                    <button type="button" data-font="Arial Narrow" style="font-family:'Arial Narrow',Arial,sans-serif"><span>Arial Narrow</span><em>Aa 123</em></button>
-                    <button type="button" data-font="Tahoma" style="font-family:Tahoma,sans-serif"><span>Tahoma</span><em>Aa 123</em></button>
-                    <button type="button" data-font="Verdana" style="font-family:Verdana,sans-serif"><span>Verdana</span><em>Aa 123</em></button>
-                    <button type="button" data-font="Impact" style="font-family:Impact,sans-serif"><span>Impact</span><em>Aa 123</em></button>
-                    <button type="button" data-font="sans-serif" style="font-family:sans-serif"><span>System Sans</span><em>Aa 123</em></button>
+                  <div id="fontPickerMenu" class="font-picker-menu font-library-menu hidden" role="dialog" aria-label="คลังฟอนต์">
+                    <div class="font-library-head">
+                      <input id="fontSearchInput" class="font-search-input" type="search" placeholder="ค้นหาฟอนต์..." autocomplete="off" spellcheck="false" aria-label="ค้นหาฟอนต์">
+                      <button id="fontRefreshBtn" class="font-library-refresh" type="button" title="โหลดรายชื่อฟอนต์ที่ติดตั้งในเครื่อง">ฟอนต์ในเครื่อง</button>
+                    </div>
+                    <div class="font-library-tabs" role="tablist" aria-label="ตัวกรองฟอนต์">
+                      <button type="button" data-font-mode="all" class="active" role="tab">ทั้งหมด</button>
+                      <button type="button" data-font-mode="recent" role="tab">ล่าสุด</button>
+                      <button type="button" data-font-mode="favorites" role="tab">★ โปรด</button>
+                    </div>
+                    <div class="font-library-meta"><span id="fontLibraryStatus">ฟอนต์พื้นฐาน 6 แบบ</span><span id="fontLibraryShown"></span></div>
+                    <div id="fontLibraryList" class="font-library-list" role="listbox" aria-label="รายการฟอนต์"></div>
+                    <div id="fontLibraryEmpty" class="font-library-empty hidden">ไม่พบฟอนต์ที่ค้นหา</div>
+                    <div class="font-library-foot">ฟอนต์อ่านจากเครื่องนี้เท่านั้น · ไม่มีการอัปโหลดฟอนต์ขึ้นเซิร์ฟเวอร์</div>
                   </div>
                   <select id="fontFamily" class="font-native-select" tabindex="-1" aria-hidden="true">
                     <option value="Arial">Arial</option><option value="Arial Narrow">Arial Narrow</option><option value="Tahoma">Tahoma</option><option value="Verdana">Verdana</option><option value="Impact">Impact</option><option value="sans-serif">System Sans</option>

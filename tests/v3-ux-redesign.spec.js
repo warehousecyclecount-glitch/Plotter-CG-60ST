@@ -72,7 +72,7 @@ test('font picker previews on hover without committing until click', async ({ pa
   await page.goto('http://127.0.0.1:4173/v3-preview.html');
   await page.click('#addItemBtn');
   await page.click('#fontPickerBtn');
-  const impact = page.locator('#fontPickerMenu [data-font="Impact"]');
+  const impact = page.locator('#fontPickerMenu [data-font-select="Impact"]');
   await impact.hover();
   await expect(page.locator('.job-text')).toHaveAttribute('font-family','Impact');
   let project = await page.evaluate(() => window.__StickerV3Diagnostics.getProject());

@@ -19,3 +19,27 @@ body{background:#f7f8fa}.topbar{height:60px;padding:0 14px;border-bottom:1px sol
 /* V6 simplified user workflow */
 .workflow-actions{gap:6px}.workflow-start-btn{font-weight:850}.workflow-more-btn{padding-inline:9px}.workflow-more-btn .more-label{font-size:9px;color:#7b8491}.send-cut-btn{min-width:108px;justify-content:center;background:#20242b;border-color:#20242b}.send-cut-btn:hover{background:#111827}.compact-file-menu .top-menu{width:255px}
 @media(max-width:900px){.workflow-more-btn .more-label{display:none}.workflow-start-btn{padding-inline:9px}.send-cut-btn{min-width:96px}}
+
+
+/* V7 local font library */
+.font-picker-menu.font-library-menu{right:auto;width:min(360px,calc(100vw - 32px));max-height:none;overflow:hidden;padding:8px}
+.font-library-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center}
+.font-search-input{height:34px;min-width:0;border:1px solid #d7dbe1;border-radius:8px;padding:0 10px;background:#fff;color:#222831;font:inherit;font-size:10.5px;outline:none}
+.font-search-input:focus{border-color:#9696e7;box-shadow:0 0 0 3px rgba(91,91,214,.10)}
+.font-picker-menu .font-library-refresh{width:auto;height:34px;padding:0 9px;border:1px solid #d7dbe1;border-radius:8px;background:#fff;color:#4b5563;font-size:9px;font-weight:850;white-space:nowrap;justify-content:center}
+.font-picker-menu .font-library-refresh:hover{background:#f5f5ff;color:#4141aa}
+.font-library-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:7px;padding:3px;background:#f3f4f6;border-radius:8px}
+.font-picker-menu .font-library-tabs button{width:auto;height:27px;padding:0 6px;border:0;border-radius:6px;background:transparent;color:#6b7280;font-size:9px;font-weight:800;justify-content:center}
+.font-picker-menu .font-library-tabs button.active{background:#fff;color:#3434a8;box-shadow:0 1px 4px rgba(15,23,42,.08)}
+.font-library-meta{height:28px;display:flex;align-items:center;justify-content:space-between;gap:8px;color:#7b8491;font-size:8.5px;padding:0 3px}
+.font-library-list{height:300px;overflow:auto;border-top:1px solid #eef0f3;border-bottom:1px solid #eef0f3;overscroll-behavior:contain}
+.font-option-row{height:48px;display:flex;align-items:stretch;gap:3px;border-bottom:1px solid #f2f3f5}
+.font-picker-menu .font-option-main{min-width:0;flex:1;width:auto;height:47px;padding:0 7px;border:0;border-radius:6px;background:transparent;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;text-align:left;color:#242a32}
+.font-picker-menu .font-option-main:hover,.font-option-row.active .font-option-main{background:#f4f4ff;color:#3434a8}
+.font-option-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:700}
+.font-picker-menu .font-option-sample{font-style:normal;font-size:14px;font-weight:400;color:#69717d;white-space:nowrap}
+.font-picker-menu .font-favorite{flex:0 0 30px;width:30px;height:47px;padding:0;border:0;border-radius:6px;background:transparent;color:#a1a8b2;font-size:15px;justify-content:center}
+.font-picker-menu .font-favorite:hover,.font-picker-menu .font-favorite.active{background:#fff8df;color:#b7791f}
+.font-library-empty{height:300px;display:grid;place-items:center;color:#9299a3;font-size:9.5px;border-top:1px solid #eef0f3;border-bottom:1px solid #eef0f3}
+.font-library-foot{padding:7px 3px 1px;color:#9aa1ab;font-size:8px;line-height:1.35}
+@media(max-width:820px){.font-picker-menu.font-library-menu{position:fixed;left:12px!important;right:12px!important;top:110px;width:auto}.font-library-list,.font-library-empty{height:min(320px,45vh)}}
