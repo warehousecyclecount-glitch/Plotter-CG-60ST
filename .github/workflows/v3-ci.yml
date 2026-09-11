@@ -40,6 +40,7 @@ jobs:
           node --check tests/v4-paper-guides-ux.spec.js
           node --check tests/v5-cad-dimensions.spec.js
           node --check tests/v6-simplified-workflow.spec.js
+          node --check tests/v7-font-library.spec.js
 
       - name: Run model regression tests
         run: node tests/model-v3.test.js
@@ -76,6 +77,8 @@ jobs:
           grep -q 'id="guideMeasureBtn"' index.html
           grep -q 'id="canvasStage"' index.html
           grep -q 'id="fontPickerMenu"' index.html
+          grep -q 'id="fontSearchInput"' index.html
+          grep -q 'id="fontLibraryList"' index.html
           grep -q 'id="floatingToolbar"' index.html
           grep -q 'id="canvasContextMenu"' index.html
           grep -q 'id="rulerHorizontal"' index.html
@@ -83,6 +86,10 @@ jobs:
           grep -q 'uxRedesign:true' js/app-v3.js
           grep -q 'middleMousePan:true' js/app-v3.js
           grep -q 'fontHoverPreview:true' js/app-v3.js
+          grep -q 'fontLibrary:true' js/app-v3.js
+          grep -q 'localFontPicker:true' js/app-v3.js
+          grep -q 'fontSearch:true' js/app-v3.js
+          grep -q 'fontFavorites:true' js/app-v3.js
           grep -q 'emptyProject:true' js/app-v3.js
           grep -q 'eightPointResize:true' js/app-v3.js
           grep -q 'multiSelect:true' js/app-v3.js
@@ -134,6 +141,10 @@ jobs:
           grep -q 'paperAutoFit:true' StickerLayout-V3-Standalone.html
           grep -q 'smartDimensions:true' StickerLayout-V3-Standalone.html
           grep -q 'simpleWorkflow:true' StickerLayout-V3-Standalone.html
+          grep -q 'fontLibrary:true' StickerLayout-V3-Standalone.html
+          grep -q 'localFontPicker:true' StickerLayout-V3-Standalone.html
+          grep -q 'id="fontSearchInput"' StickerLayout-V3-Standalone.html
+          grep -q 'id="fontLibraryList"' StickerLayout-V3-Standalone.html
           grep -q 'id="guideMeasureBtn"' StickerLayout-V3-Standalone.html
           if grep -q 'id="exportMenuBtn"' StickerLayout-V3-Standalone.html; then
             echo 'Standalone must use the simplified send-to-cut workflow'
@@ -175,4 +186,4 @@ jobs:
           exit 1
 
       - name: Run full production browser suite
-        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-cutready.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js tests/v3-ux-redesign.spec.js tests/v4-canvas-interactions.spec.js tests/v4-paper-guides-ux.spec.js tests/v5-cad-dimensions.spec.js tests/v6-simplified-workflow.spec.js --reporter=line --workers=1
+        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-cutready.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js tests/v3-ux-redesign.spec.js tests/v4-canvas-interactions.spec.js tests/v4-paper-guides-ux.spec.js tests/v5-cad-dimensions.spec.js tests/v6-simplified-workflow.spec.js tests/v7-font-library.spec.js --reporter=line --workers=1
