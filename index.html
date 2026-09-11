@@ -33,14 +33,14 @@
         </div>
       </div>
 
-      <div class="top-actions">
-        <div class="menu-wrap file-menu-wrap">
-          <button id="fileMenuBtn" class="top-menu-btn" type="button" aria-haspopup="true" aria-expanded="false">ไฟล์ <span>⌄</span></button>
+      <div class="top-actions workflow-actions" aria-label="ขั้นตอนหลัก">
+        <button id="newProjectBtn" class="top-secondary-btn workflow-start-btn" type="button" title="เริ่มงานใหม่จากกระดาษเปล่า">＋ งานใหม่</button>
+        <button id="openProjectBtn" class="top-secondary-btn workflow-start-btn" type="button" title="เปิดไฟล์งานที่บันทึกไว้">↗ เปิดงาน</button>
+
+        <div class="menu-wrap file-menu-wrap compact-file-menu">
+          <button id="fileMenuBtn" class="top-menu-btn workflow-more-btn" type="button" aria-haspopup="true" aria-expanded="false" title="บันทึก กู้คืน และตัวเลือกไฟล์">⋯ <span class="more-label">เพิ่มเติม</span></button>
           <div id="fileMenu" class="top-menu hidden" role="menu">
-            <button id="newProjectBtn" class="menu-item" type="button"><span class="menu-icon">＋</span><span><strong>งานใหม่</strong><small>เริ่มจากกระดาษเปล่า</small></span></button>
-            <button id="openProjectBtn" class="menu-item" type="button"><span class="menu-icon">↗</span><span><strong>เปิดไฟล์งาน…</strong><small>.cg60st.json</small></span></button>
-            <button id="saveProjectBtn" class="menu-item" type="button"><span class="menu-icon">↓</span><span><strong>ดาวน์โหลดไฟล์งาน</strong><small>เก็บไว้เปิดต่อภายหลัง</small></span></button>
-            <div class="menu-separator"></div>
+            <button id="saveProjectBtn" class="menu-item" type="button"><span class="menu-icon">↓</span><span><strong>บันทึกไฟล์งาน</strong><small>เก็บไว้กลับมาแก้ต่อภายหลัง</small></span></button>
             <button id="restoreProjectBtn" class="menu-item" type="button"><span class="menu-icon">↶</span><span><strong>กู้คืนงานล่าสุด</strong><small>จาก Autosave ใน Browser นี้</small></span></button>
             <div class="menu-status"><span class="autosave-dot"></span><span id="autosaveStatus">บันทึกอัตโนมัติเปิดอยู่</span></div>
             <input id="openProjectInput" type="file" accept=".json,.cg60st.json,application/json" hidden>
@@ -48,18 +48,7 @@
           </div>
         </div>
 
-        <button id="preflightBtn" class="top-secondary-btn" type="button">ตรวจงาน</button>
-
-        <div class="menu-wrap export-menu-wrap">
-          <button id="exportMenuBtn" class="top-primary-btn" type="button" aria-haspopup="true" aria-expanded="false">ส่งออก <span>⌄</span></button>
-          <div id="exportMenu" class="top-menu export-menu hidden" role="menu">
-            <button id="exportCutReadyBtn" class="menu-item featured" type="button"><span class="menu-icon">✦</span><span><strong>ไฟล์พร้อมตัด</strong><small>Curve / Path สำหรับ FineCut</small></span></button>
-            <button id="exportEditableBtn" class="menu-item" type="button"><span class="menu-icon">A</span><span><strong>แก้ต่อใน Corel</strong><small>คงข้อความเป็น Text</small></span></button>
-            <button id="exportBtn" class="menu-item" type="button"><span class="menu-icon">◇</span><span><strong>SVG 1:1</strong><small>โหมด Compatibility เดิม</small></span></button>
-            <div class="menu-separator"></div>
-            <button id="calibrationMenuBtn" class="menu-item" type="button"><span class="menu-icon">□</span><span><strong>ไฟล์ทดสอบ 100 mm</strong><small>ตรวจสเกลก่อนตัดจริง</small></span></button>
-          </div>
-        </div>
+        <button id="preflightBtn" class="top-primary-btn send-cut-btn" type="button" title="ตรวจงานอัตโนมัติแล้วสร้างไฟล์สำหรับตัด">✦ ส่งไปตัด</button>
       </div>
     </header>
 
@@ -334,19 +323,28 @@
   </div>
 
   <div id="preflightPanel" class="preflight-panel hidden" role="dialog" aria-modal="true" aria-labelledby="preflightTitle">
-    <div class="preflight-card">
+    <div class="preflight-card send-cut-card">
       <div class="preflight-head">
-        <div><span class="eyebrow">Preflight</span><h2 id="preflightTitle">ตรวจงานก่อน Export</h2></div>
+        <div><span class="eyebrow">ขั้นตอนสุดท้าย</span><h2 id="preflightTitle">ส่งไปตัด</h2><small class="preflight-subtitle">ระบบตรวจงานให้อัตโนมัติก่อนสร้างไฟล์</small></div>
         <button id="preflightCloseBtn" class="preflight-close" type="button" aria-label="ปิด">×</button>
       </div>
-      <div id="preflightSummary" class="preflight-summary ok">พร้อม Export</div>
+      <div id="preflightSummary" class="preflight-summary ok">กำลังตรวจงาน…</div>
       <ul id="preflightList" class="preflight-list"></ul>
-      <div class="preflight-actions">
-        <button id="calibrationBtn" class="export-check-btn" type="button">ไฟล์ทดสอบ 100 mm</button>
-        <button id="preflightEditableBtn" class="export-editable-btn" type="button">ส่งไปแก้ต่อใน Corel</button>
-        <button id="preflightCutReadyBtn" class="export-cutready-btn" type="button">ไฟล์พร้อมตัด</button>
-        <button id="preflightExportBtn" class="primary-btn export-advanced-btn" type="button">SVG 1:1</button>
+
+      <div class="preflight-primary-action">
+        <div class="preflight-primary-copy"><strong>ไฟล์พร้อมตัด</strong><small>ตัวเลือกแนะนำสำหรับ CorelDRAW → FineCut → CG-60ST</small></div>
+        <button id="preflightCutReadyBtn" class="export-cutready-btn" type="button">สร้างไฟล์พร้อมตัด</button>
       </div>
+
+      <details id="advancedExportOptions" class="preflight-more">
+        <summary>ตัวเลือกเพิ่มเติม</summary>
+        <p>ใช้เมื่อยังต้องแก้ข้อความใน Corel, ต้องการ SVG แบบเดิม หรือเช็กสเกล 100 mm</p>
+        <div class="preflight-secondary-actions">
+          <button id="preflightEditableBtn" class="export-editable-btn" type="button">แก้ต่อใน Corel</button>
+          <button id="preflightExportBtn" class="export-check-btn" type="button">SVG 1:1</button>
+          <button id="calibrationBtn" class="export-check-btn" type="button">ทดสอบ 100 mm</button>
+        </div>
+      </details>
     </div>
   </div>
 

@@ -9,12 +9,12 @@ test('preflight and Corel-editable SVG keep export behavior explicit', async ({ 
   await page.click('#addItemBtn');
 
   await expect(page.locator('#preflightBtn')).toBeVisible();
-  await page.click('#exportMenuBtn');
-  await expect(page.locator('#exportEditableBtn')).toBeVisible();
-
+  await page.click('#preflightBtn');
+  await expect(page.locator('#preflightPanel')).toBeVisible();
+  await page.locator('#advancedExportOptions').evaluate(el=>el.open=true);
   const [editableDownload] = await Promise.all([
     page.waitForEvent('download'),
-    page.click('#exportEditableBtn')
+    page.click('#preflightEditableBtn')
   ]);
   expect(editableDownload.suggestedFilename()).toBe('CG60ST-Corel-Editable.svg');
   const editablePath = await editableDownload.path();
@@ -27,10 +27,11 @@ test('preflight and Corel-editable SVG keep export behavior explicit', async ({ 
   expect(editable).toContain('width="680mm"');
   expect(editable).toContain('height="520mm"');
 
-  await page.click('#exportMenuBtn');
+  await page.click('#preflightBtn');
+  await page.locator('#advancedExportOptions').evaluate(el=>el.open=true);
   const [standardDownload] = await Promise.all([
     page.waitForEvent('download'),
-    page.click('#exportBtn')
+    page.click('#preflightExportBtn')
   ]);
   expect(standardDownload.suggestedFilename()).toBe('CG60ST-layout.svg');
   const standardPath = await standardDownload.path();
@@ -46,7 +47,7 @@ test('preflight and Corel-editable SVG keep export behavior explicit', async ({ 
   await page.dispatchEvent('#positionX', 'input');
   await page.click('#preflightBtn');
   await expect(page.locator('#preflightPanel')).toBeVisible();
-  await expect(page.locator('#preflightSummary')).toContainText('Export ได้');
+  await expect(page.locator('#preflightSummary')).toContainText('ส่งออกได้');
   await expect(page.locator('#preflightList')).toContainText('นอกกระดาษ');
   await expect(page.locator('#preflightList')).toContainText('1 ชิ้น');
   await expect(page.locator('#preflightList')).toContainText('Corel');
