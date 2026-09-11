@@ -23,6 +23,15 @@ s=replace_once(
     "E.svg.querySelectorAll('[data-resize]').forEach(el=>el.addEventListener('pointerdown',e=>{if(guideMeasureState().active){e.preventDefault();e.stopPropagation();selectObjectForMeasure(e,state.selected.placementId,el.dataset.resize);return;}startResize(e,state.selected.placementId,el.dataset.resize,el.dataset.handle);}));",
     'resize handle smart dimension routing')
 
+# Keep the established V4 instruction wording while making the V5 action more
+# explicit. This preserves the existing user guidance contract without
+# weakening the new Smart Dimension behavior.
+s=replace_once(
+    s,
+    "E.guideMeasureHint.textContent=`2. เลือกขอบกระดาษอ้างอิงสำหรับ ${targetName(gm.target)}`;",
+    "E.guideMeasureHint.textContent=`2. คลิกบนกระดาษเพื่อเลือกขอบอ้างอิงสำหรับ ${targetName(gm.target)}`;",
+    'guide measurement guidance compatibility')
+
 # Give the visible numeric label its own dimension id. Generated JS contains
 # normal quote characters inside template literals, not escaped source text.
 label_old='class="driving-dim-label-bg"'
@@ -70,4 +79,4 @@ t=replace_once(t,"const label=page.locator('[data-driving-dimension]');await lab
 t=replace_once(t,"await page.check('#frameEnabled');await page.dispatchEvent('#frameEnabled','change');","await page.locator('#frameEnabled').evaluate(el=>{el.checked=true;el.dispatchEvent(new Event('change',{bubbles:true}));});",'center relation test switch')
 tp.write_text(t,encoding='utf-8')
 
-print('Fixed V5 dimension label hit target, editing, and persistent relation UI')
+print('Fixed V5 dimension label hit target, editing, relation UI, and V4 guide guidance')
