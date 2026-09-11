@@ -8,6 +8,7 @@ on:
       - .github/workflows/v4-paper-guides-ux.yml
       - scripts/apply-v4-paper-guides-ux.py
       - scripts/repair-v4-paper-patch.py
+      - tests/v4-guide-debug.spec.js
 
 permissions:
   contents: write
@@ -57,6 +58,9 @@ jobs:
           done
           cat /tmp/v4-paper-http.log
           exit 1
+
+      - name: Guide pointer diagnostics
+        run: npx playwright test tests/v4-guide-debug.spec.js --reporter=line --workers=1
 
       - name: Requested behavior regressions
         run: npx playwright test tests/v4-paper-guides-ux.spec.js --reporter=line --workers=1
