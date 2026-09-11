@@ -25,13 +25,21 @@ s=replace_once(
     "E.svg.querySelectorAll('[data-resize]').forEach(el=>el.addEventListener('pointerdown',e=>{if(guideMeasureState().active){e.preventDefault();e.stopPropagation();selectObjectForMeasure(e,state.selected.placementId,el.dataset.resize);return;}startResize(e,state.selected.placementId,el.dataset.resize,el.dataset.handle);}));",
     'resize handle smart dimension routing')
 
-# Do not re-render the SVG on the first pointerdown of a dimension. Replacing
-# the DOM between clicks prevents a real browser dblclick from ever firing.
+# Selecting a dimension must not rebuild the SVG or cancel compatibility mouse
+# events. Keep the same DOM node alive so a real browser dblclick can fire.
 s=replace_once(
     s,
     "el.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();state.ui.selectedDimensionId=id;state.ui.selectedGuide=null;renderCanvas();});el.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();editDrivingDimension(id);});",
-    "el.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();state.ui.selectedDimensionId=id;state.ui.selectedGuide=null;E.svg.querySelectorAll('[data-driving-dimension]').forEach(x=>x.classList.toggle('selected',x.dataset.drivingDimension===id));});el.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();editDrivingDimension(id);});",
+    "el.addEventListener('pointerdown',e=>{e.stopPropagation();state.ui.selectedDimensionId=id;state.ui.selectedGuide=null;E.svg.querySelectorAll('[data-driving-dimension]').forEach(x=>x.classList.toggle('selected',x.dataset.drivingDimension===id));});el.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();editDrivingDimension(id);});",
     'dimension double click stability')
+
+# Toggling the frame changes which contextual relation controls should be
+# visible, so that one editor action must refresh the editor as well as canvas.
+s=replace_once(
+    s,
+    "if(source==='padY')d.padding.y=Math.max(0,toMm(readNum(E.padY,fromMm(d.padding.y))));\n    renderAll(false);\n  }\n\n  function pointForPaste",
+    "if(source==='padY')d.padding.y=Math.max(0,toMm(readNum(E.padY,fromMm(d.padding.y))));\n    renderAll(source==='frame');\n  }\n\n  function pointForPaste",
+    'frame relation UI refresh')
 
 p.write_text(s,encoding='utf-8')
 
@@ -53,4 +61,4 @@ t=replace_once(
     'center relation test switch')
 tp.write_text(t,encoding='utf-8')
 
-print('Fixed generated V5 syntax and stabilized Smart Dimension interactions')
+print('Fixed V5 syntax, Smart Dimension dblclick, and relation editor refresh')
