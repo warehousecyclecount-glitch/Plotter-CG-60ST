@@ -57,8 +57,9 @@ test('V4 canvas interactions expose professional editor controls', async ({ page
   await page.keyboard.press('Escape');
 
   // Zoom and fit controls update real zoom state.
+  const beforeZoom=await page.evaluate(()=>window.__StickerV3Diagnostics.getZoom());
   await page.click('#zoomInBtn');
-  expect(await page.evaluate(()=>window.__StickerV3Diagnostics.getZoom())).toBeGreaterThan(1);
+  expect(await page.evaluate(()=>window.__StickerV3Diagnostics.getZoom())).toBeGreaterThan(beforeZoom);
   await page.keyboard.press('Control+0');
   near(await page.evaluate(()=>window.__StickerV3Diagnostics.getZoom()),1,.01);
 
