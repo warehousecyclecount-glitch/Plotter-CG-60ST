@@ -1,0 +1,27 @@
+name: Verify V5 Cloudflare Deployment
+
+on:
+  push:
+    branches:
+      - verify-v5-cloudflare
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check production markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://plotter-cg-60st.pages.dev/"
+          for i in {1..24}; do
+            body="$(curl -fsSL --max-time 20 "$url" || true)"
+            if grep -q 'Smart Dimension' <<<"$body" && grep -q 'centerRelationBtn' <<<"$body" && grep -q 'guideContextMenu' <<<"$body"; then
+              echo "V5 production markers found on Cloudflare Pages"
+              exit 0
+            fi
+            echo "Attempt $i: V5 markers not visible yet"
+            sleep 5
+          done
+          echo "Cloudflare Pages did not expose the expected V5 markers within the verification window"
+          exit 1
