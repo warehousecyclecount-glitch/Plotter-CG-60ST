@@ -25,12 +25,13 @@ s=replace_once(
     "E.svg.querySelectorAll('[data-resize]').forEach(el=>el.addEventListener('pointerdown',e=>{if(guideMeasureState().active){e.preventDefault();e.stopPropagation();selectObjectForMeasure(e,state.selected.placementId,el.dataset.resize);return;}startResize(e,state.selected.placementId,el.dataset.resize,el.dataset.handle);}));",
     'resize handle smart dimension routing')
 
-# Selecting a dimension must not rebuild the SVG or cancel compatibility mouse
-# events. Keep the same DOM node alive so a real browser dblclick can fire.
+# Selecting a dimension must keep the same SVG node alive. Use the browser's
+# second click count as a reliable double-click trigger; editDrivingDimension
+# then intentionally re-renders the overlay into its editing state.
 s=replace_once(
     s,
     "el.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();state.ui.selectedDimensionId=id;state.ui.selectedGuide=null;renderCanvas();});el.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();editDrivingDimension(id);});",
-    "el.addEventListener('pointerdown',e=>{e.stopPropagation();state.ui.selectedDimensionId=id;state.ui.selectedGuide=null;E.svg.querySelectorAll('[data-driving-dimension]').forEach(x=>x.classList.toggle('selected',x.dataset.drivingDimension===id));});el.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();editDrivingDimension(id);});",
+    "el.addEventListener('pointerdown',e=>{e.stopPropagation();state.ui.selectedDimensionId=id;state.ui.selectedGuide=null;E.svg.querySelectorAll('[data-driving-dimension]').forEach(x=>x.classList.toggle('selected',x.dataset.drivingDimension===id));});el.addEventListener('click',e=>{e.stopPropagation();if(e.detail>=2)editDrivingDimension(id);});el.addEventListener('dblclick',e=>{e.preventDefault();e.stopPropagation();});",
     'dimension double click stability')
 
 # Toggling the frame changes which contextual relation controls should be
@@ -40,6 +41,14 @@ s=replace_once(
     "if(source==='padY')d.padding.y=Math.max(0,toMm(readNum(E.padY,fromMm(d.padding.y))));\n    renderAll(false);\n  }\n\n  function pointForPaste",
     "if(source==='padY')d.padding.y=Math.max(0,toMm(readNum(E.padY,fromMm(d.padding.y))));\n    renderAll(source==='frame');\n  }\n\n  function pointForPaste",
     'frame relation UI refresh')
+
+# Relation state is contextual UI, so toggling it must refresh the editor once
+# to show the active/pinned state immediately.
+s=replace_once(
+    s,
+    "toast('ตรึงข้อความให้อยู่กึ่งกลางกรอบแล้ว');}renderAll(false);});",
+    "toast('ตรึงข้อความให้อยู่กึ่งกลางกรอบแล้ว');}renderAll();});",
+    'center relation active state refresh')
 
 p.write_text(s,encoding='utf-8')
 
@@ -61,4 +70,4 @@ t=replace_once(
     'center relation test switch')
 tp.write_text(t,encoding='utf-8')
 
-print('Fixed V5 syntax, Smart Dimension dblclick, and relation editor refresh')
+print('Fixed V5 syntax, dimension editing, and persistent relation UI state')
