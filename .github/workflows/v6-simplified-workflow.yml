@@ -82,7 +82,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html v3-preview.html css/ux-redesign.css css/v3-preview.css js/app-v3.js tests/v3-ux-redesign.spec.js tests/v3-export.spec.js tests/v3-cutready.spec.js tests/v3-standalone.spec.js tests/v6-simplified-workflow.spec.js .github/workflows/v3-ci.yml StickerLayout-V3-Standalone.html
+          git add index.html v3-preview.html css/ux-redesign.css css/v3-preview.css js/app-v3.js tests/v3-ux-redesign.spec.js tests/v3-export.spec.js tests/v3-cutready.spec.js tests/v3-standalone.spec.js tests/v6-simplified-workflow.spec.js StickerLayout-V3-Standalone.html
           if git diff --cached --quiet; then
             echo 'No generated changes to commit'
           else
