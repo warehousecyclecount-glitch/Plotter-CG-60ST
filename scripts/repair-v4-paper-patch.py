@@ -30,14 +30,25 @@ if old_hit not in s:
     raise SystemExit('guide hit CSS patch target not found')
 s = s.replace(old_hit, new_hit, 1)
 
-# Also make guide selection geometry-aware: if a click lands on the paper or
-# gray workspace within 12 screen pixels of a guide, select that guide. This is
-# the user-facing behavior we want and is independent of SVG hit-test quirks.
+# If the click lands on the visible paper/workspace close to a guide, select
+# the nearest guide within 12 screen px. This adds a geometry-based fallback
+# independent of SVG element hit testing.
 old_workspace_patch = '''new_workspace = "E.svg.querySelectorAll('[data-workspace],[data-paper]').forEach(el=>el.addEventListener('pointerdown',e=>{if(e.target!==el)return;if(guideMeasureState().active&&el.hasAttribute('data-paper')){e.preventDefault();e.stopPropagation();chooseGuideMeasureEdge(e);return;}startMarquee(e);}));"'''
 new_workspace_patch = '''new_workspace = "E.svg.querySelectorAll('[data-workspace],[data-paper]').forEach(el=>el.addEventListener('pointerdown',e=>{if(e.target!==el)return;if(guideMeasureState().active){e.preventDefault();e.stopPropagation();const pt=svgPoint(e),sr=E.svg.getBoundingClientRect(),vb=E.svg.viewBox.baseVal,sx=sr.width/Math.max(vb.width,1),sy=sr.height/Math.max(vb.height,1),wg=ensureWorkspaceState().guides;let hit=null,best=13;wg.x.forEach((v,i)=>{const d=Math.abs(pt.x-v)*sx;if(d<best){best=d;hit={axis:'x',index:i};}});wg.y.forEach((v,i)=>{const d=Math.abs(pt.y-v)*sy;if(d<best){best=d;hit={axis:'y',index:i};}});if(hit){selectGuideForMeasure(hit.axis,hit.index);return;}if(el.hasAttribute('data-paper'))chooseGuideMeasureEdge(e);return;}startMarquee(e);}));"'''
 if old_workspace_patch not in s:
     raise SystemExit('guide workspace fallback patch target not found')
 s = s.replace(old_workspace_patch, new_workspace_patch, 1)
 
+# The first version of the regression used the guide element's un-clipped top
+# coordinate. Diagnostics proved that coordinate is physically behind the edit
+# toolbar (elementFromPoint = Paste button), so it was testing an invisible,
+# unclickable region. Test the visible middle of the paper instead, still 5 px
+# away from the 1 px red line to verify the enlarged hit target.
+old_test_click = "  const lineRect=await page.locator('.user-guide').boundingBox();\n  await page.mouse.click(lineRect.x+5,lineRect.y+Math.min(30,lineRect.height/2));"
+new_test_click = "  const lineRect=await page.locator('.user-guide').boundingBox();\n  await page.mouse.click(lineRect.x+5,pb.y+pb.height/2);"
+if old_test_click not in s:
+    raise SystemExit('visible guide regression click target not found')
+s = s.replace(old_test_click, new_test_click, 1)
+
 p.write_text(s, encoding='utf-8')
-print('Repaired guide render matching, hit rectangles, and proximity fallback')
+print('Repaired guide rendering, proximity fallback, and visible-area regression')
