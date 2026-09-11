@@ -1,4 +1,4 @@
-name: Verify V6 Cloudflare Deployment
+name: Verify V7 Cloudflare Deployment
 
 on:
   push:
@@ -16,18 +16,18 @@ jobs:
           for i in {1..20}; do
             if curl -fsSL --max-time 20 "$base/" -o /tmp/index.html && \
                curl -fsSL --max-time 20 "$base/js/app-v3.js" -o /tmp/app.js; then
-              if grep -q 'id="newProjectBtn"' /tmp/index.html && \
-                 grep -q 'ส่งไปตัด' /tmp/index.html && \
-                 grep -q 'function shortcutCode(e)' /tmp/app.js && \
-                 grep -q "code==='KeyD'" /tmp/app.js && \
-                 grep -q "code==='KeyC'" /tmp/app.js && \
-                 grep -q "code==='KeyV'" /tmp/app.js; then
-                echo 'Cloudflare production shortcut fix verified'
+              if grep -q 'id="fontSearchInput"' /tmp/index.html && \
+                 grep -q 'id="fontLibraryList"' /tmp/index.html && \
+                 grep -q 'fontLibrary:true' /tmp/app.js && \
+                 grep -q 'localFontPicker:true' /tmp/app.js && \
+                 grep -q 'fontSearch:true' /tmp/app.js && \
+                 grep -q 'fontFavorites:true' /tmp/app.js; then
+                echo 'V7 local font library verified on Cloudflare production'
                 exit 0
               fi
             fi
             echo "Waiting for Cloudflare production deploy ($i/20)..."
             sleep 5
           done
-          echo 'Keyboard shortcut fix not found on Cloudflare production within verification window'
+          echo 'V7 font library markers not found on Cloudflare production within verification window'
           exit 1
