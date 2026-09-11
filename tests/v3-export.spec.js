@@ -24,8 +24,8 @@ test('preflight and Corel-editable SVG keep export behavior explicit', async ({ 
   expect(editable).not.toContain('lengthAdjust=');
   expect(editable).not.toContain('<clipPath');
   expect(editable).toContain('overflow="visible"');
-  expect(editable).toContain('width="600mm"');
-  expect(editable).toContain('height="300mm"');
+  expect(editable).toContain('width="680mm"');
+  expect(editable).toContain('height="520mm"');
 
   await page.click('#exportMenuBtn');
   const [standardDownload] = await Promise.all([
@@ -37,8 +37,8 @@ test('preflight and Corel-editable SVG keep export behavior explicit', async ({ 
   const standard = fs.readFileSync(standardPath, 'utf8');
   expect(standard).toContain('<clipPath id="paperClip">');
   expect(standard).toContain('textLength=');
-  expect(standard).toContain('width="600mm"');
-  expect(standard).toContain('height="300mm"');
+  expect(standard).toContain('width="680mm"');
+  expect(standard).toContain('height="520mm"');
 
   await page.click('.job-text');
   await page.click('#arrangeTab');

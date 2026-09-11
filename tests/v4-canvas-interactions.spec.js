@@ -10,7 +10,8 @@ test('V4 canvas interactions expose professional editor controls', async ({ page
   await expect(page.locator('#canvasEmptyState')).toHaveCount(0);
   await expect(page.locator('#rulerHorizontal')).toBeVisible();
   await expect(page.locator('#rulerVertical')).toBeVisible();
-  await expect(page.locator('#zoomLabel')).toHaveText('100%');
+  await page.waitForFunction(()=>window.__StickerV3Diagnostics.getZoom() > 0 && window.__StickerV3Diagnostics.getZoom() <= 1);
+  await expect(page.locator('#zoomLabel')).toContainText('%');
 
   // T and R create real objects.
   await page.keyboard.press('t');
@@ -56,8 +57,9 @@ test('V4 canvas interactions expose professional editor controls', async ({ page
   await page.keyboard.press('Escape');
 
   // Zoom and fit controls update real zoom state.
+  const beforeZoom=await page.evaluate(()=>window.__StickerV3Diagnostics.getZoom());
   await page.click('#zoomInBtn');
-  expect(await page.evaluate(()=>window.__StickerV3Diagnostics.getZoom())).toBeGreaterThan(1);
+  expect(await page.evaluate(()=>window.__StickerV3Diagnostics.getZoom())).toBeGreaterThan(beforeZoom);
   await page.keyboard.press('Control+0');
   near(await page.evaluate(()=>window.__StickerV3Diagnostics.getZoom()),1,.01);
 

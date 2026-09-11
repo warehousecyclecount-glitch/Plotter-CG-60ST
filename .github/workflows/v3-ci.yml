@@ -37,6 +37,7 @@ jobs:
           node --check tests/v3-standalone.spec.js
           node --check tests/v3-ux-redesign.spec.js
           node --check tests/v4-canvas-interactions.spec.js
+          node --check tests/v4-paper-guides-ux.spec.js
 
       - name: Run model regression tests
         run: node tests/model-v3.test.js
@@ -65,6 +66,9 @@ jobs:
           grep -q 'id="exportMenuBtn"' index.html
           grep -q 'id="leftPanelResizer"' index.html
           grep -q 'id="rightPanelResizer"' index.html
+          grep -q 'id="leftPanelCollapseBtn"' index.html
+          grep -q 'id="rightPanelCollapseBtn"' index.html
+          grep -q 'id="guideMeasureBtn"' index.html
           grep -q 'id="canvasStage"' index.html
           grep -q 'id="fontPickerMenu"' index.html
           grep -q 'id="floatingToolbar"' index.html
@@ -81,6 +85,8 @@ jobs:
           grep -q 'floatingToolbar:true' js/app-v3.js
           grep -q 'rulers:true' js/app-v3.js
           grep -q 'userGuides:true' js/app-v3.js
+          grep -q 'guideMeasure:true' js/app-v3.js
+          grep -q 'paperAutoFit:true' js/app-v3.js
           if grep -q 'WAREHOUSE' js/app-v3.js; then
             echo 'Production runtime must not seed demo WAREHOUSE content'
             exit 1
@@ -111,6 +117,9 @@ jobs:
           grep -q 'uxRedesign:true' StickerLayout-V3-Standalone.html
           grep -q 'floatingToolbar:true' StickerLayout-V3-Standalone.html
           grep -q 'eightPointResize:true' StickerLayout-V3-Standalone.html
+          grep -q 'guideMeasure:true' StickerLayout-V3-Standalone.html
+          grep -q 'paperAutoFit:true' StickerLayout-V3-Standalone.html
+          grep -q 'id="guideMeasureBtn"' StickerLayout-V3-Standalone.html
           if grep -Eq 'src="js/|href="css/' StickerLayout-V3-Standalone.html; then
             echo 'Standalone still has external project CSS/JS dependency'
             exit 1
@@ -147,4 +156,4 @@ jobs:
           exit 1
 
       - name: Run full production browser suite
-        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-cutready.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js tests/v3-ux-redesign.spec.js tests/v4-canvas-interactions.spec.js --reporter=line --workers=1
+        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-cutready.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js tests/v3-ux-redesign.spec.js tests/v4-canvas-interactions.spec.js tests/v4-paper-guides-ux.spec.js --reporter=line --workers=1
