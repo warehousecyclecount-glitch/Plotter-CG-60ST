@@ -26,6 +26,9 @@ jobs:
       - name: Apply V6 UX changes
         run: python3 scripts/apply-v6-simplified-workflow.py
 
+      - name: Fix V6 runtime compatibility
+        run: python3 scripts/fix-v6-runtime.py
+
       - name: Rebuild standalone
         run: node scripts/build-v3-standalone.js
 
