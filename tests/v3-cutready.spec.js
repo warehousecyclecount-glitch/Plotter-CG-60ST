@@ -19,8 +19,9 @@ test('Cut Ready export converts text to real SVG paths from local font outline d
     window.queryLocalFonts=async()=>[{family:'Arial',fullName:'Arial',postscriptName:'ArialMT',style:'Regular',blob:async()=>new Blob([bytes])}];
   });
   await page.click('#autoArrangeTopBtn');
-  await page.click('#exportMenuBtn');
-  const [dl]=await Promise.all([page.waitForEvent('download'),page.click('#exportCutReadyBtn')]);
+  await page.click('#preflightBtn');
+  await expect(page.locator('#preflightPanel')).toBeVisible();
+  const [dl]=await Promise.all([page.waitForEvent('download'),page.click('#preflightCutReadyBtn')]);
   expect(dl.suggestedFilename()).toBe('CG60ST-Cut-Ready-Paths.svg');
   const svg=fs.readFileSync(await dl.path(),'utf8');
   expect(svg).toContain('data-kind="text-path"');

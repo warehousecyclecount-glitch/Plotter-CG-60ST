@@ -10,8 +10,10 @@ test('redesigned workspace starts empty, centered and beginner friendly', async 
   await expect(page.locator('#emptyEditor')).toBeVisible();
   await expect(page.locator('#editorTitle')).toHaveText('ยังไม่มีชิ้นงาน');
   await expect(page.locator('#fileMenuBtn')).toBeVisible();
-  await expect(page.locator('#exportMenuBtn')).toBeVisible();
-  await expect(page.locator('#newProjectBtn')).toBeHidden();
+  await expect(page.locator('#exportMenuBtn')).toHaveCount(0);
+  await expect(page.locator('#newProjectBtn')).toBeVisible();
+  await expect(page.locator('#openProjectBtn')).toBeVisible();
+  await expect(page.locator('#preflightBtn')).toContainText('ส่งไปตัด');
 
   await page.waitForFunction(() => {
     const vp = document.querySelector('#canvasViewport')?.getBoundingClientRect();
@@ -81,13 +83,13 @@ test('font picker previews on hover without committing until click', async ({ pa
   await expect(page.locator('#fontPickerLabel')).toHaveText('Impact');
 });
 
-test('file menu keeps project actions grouped and restore is explicit', async ({ page }) => {
+test('start actions are direct and secondary file actions stay under more menu', async ({ page }) => {
   await page.addInitScript(() => localStorage.clear());
   await page.goto('http://127.0.0.1:4173/v3-preview.html');
   await page.click('#fileMenuBtn');
   await expect(page.locator('#fileMenu')).toBeVisible();
-  await expect(page.locator('#newProjectBtn')).toContainText('งานใหม่');
-  await expect(page.locator('#openProjectBtn')).toContainText('เปิดไฟล์งาน');
-  await expect(page.locator('#saveProjectBtn')).toContainText('ดาวน์โหลดไฟล์งาน');
+  await expect(page.locator('#newProjectBtn')).toBeVisible();
+  await expect(page.locator('#openProjectBtn')).toBeVisible();
+  await expect(page.locator('#saveProjectBtn')).toContainText('บันทึกไฟล์งาน');
   await expect(page.locator('#restoreProjectBtn')).toContainText('กู้คืนงานล่าสุด');
 });
