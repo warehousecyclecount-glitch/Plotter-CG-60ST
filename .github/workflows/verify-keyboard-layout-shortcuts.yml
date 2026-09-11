@@ -1,0 +1,132 @@
+name: Verify Keyboard Layout Shortcuts
+
+on:
+  push:
+    branches:
+      - v6-keyboard-layout-shortcuts
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: v6-keyboard-layout-shortcuts
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Apply shortcut fix and regression
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          app = Path('js/app-v3.js')
+          s = app.read_text(encoding='utf-8')
+          if 'function shortcutCode(e)' not in s:
+              pattern = r"  document\.addEventListener\('keydown',e=>\{const mod=.*?\}\);\n\n  \[E\.paperW"
+              replacement = '''  function shortcutCode(e){
+            if(e.code)return e.code;
+            const k=String(e.key||'');
+            if(/^[a-z]$/i.test(k))return `Key${k.toUpperCase()}`;
+            if(/^[0-9]$/.test(k))return `Digit${k}`;
+            return '';
+          }
+          document.addEventListener('keydown',e=>{const mod=e.ctrlKey||e.metaKey,code=shortcutCode(e),typing=isTypingTarget(e.target),inline=e.target?.id==='inlineTextEditor';if(mod&&code==='KeyZ'){e.preventDefault();e.shiftKey?redo():undo();return;}if(mod&&code==='KeyY'){e.preventDefault();redo();return;}if(mod&&code==='KeyS'){e.preventDefault();saveProjectFile();return;}if(mod&&code==='KeyB'){e.preventDefault();toggleBold();return;}if(!typing&&mod&&code==='KeyA'){e.preventDefault();selectAllPlacements();return;}if(!typing&&mod&&code==='KeyC'){e.preventDefault();copySelected();return;}if(!typing&&mod&&code==='KeyV'){e.preventDefault();pasteItem();return;}if(mod&&code==='KeyD'){e.preventDefault();if(selectionEntries().length)duplicateSelected();return;}if(!typing&&mod&&code==='Digit0'){e.preventDefault();setZoom(1);centerCanvasView();return;}if(!typing&&e.shiftKey&&code==='Digit1'){e.preventDefault();fitPaper();return;}if(!typing&&e.shiftKey&&code==='Digit2'){e.preventDefault();fitSelected();return;}if(!typing&&!mod&&!e.altKey&&!e.shiftKey&&code==='KeyD'){e.preventDefault();setGuideMeasureMode(!guideMeasureState().active);return;}if(!typing&&!mod&&!e.altKey&&!e.shiftKey&&code==='KeyT'){e.preventDefault();addItem();return;}if(!typing&&!mod&&!e.altKey&&!e.shiftKey&&code==='KeyR'){e.preventDefault();addFrameDesign();return;}if(!typing&&e.key==='Tab'){e.preventDefault();cycleSelection(e.shiftKey?-1:1);return;}if(!typing&&(e.key==='Delete'||e.key==='Backspace')){if(state.ui.selectedDimensionId||state.ui.selectedGuide||selectionEntries().length){e.preventDefault();deleteCurrentSelection();}return;}if(!typing&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)&&selectionEntries().length){e.preventDefault();const step=e.shiftKey?10:1,dx=e.key==='ArrowLeft'?-step:e.key==='ArrowRight'?step:0,dy=e.key==='ArrowUp'?-step:e.key==='ArrowDown'?step:0;nudgeSelected(dx,dy);return;}if(!typing&&e.key==='Enter'&&selectionEntries().length===1){const o=selectedObject();if(o?.type==='text'){e.preventDefault();beginInlineEdit(state.selected.placementId,o.id);}return;}if(!typing&&e.key==='Escape'){closeContextMenu();closeGuideContextMenu();E.shortcutPanel?.classList.add('hidden');if(guideMeasureState().active)setGuideMeasureMode(false);state.ui.selectedGuide=null;state.ui.selectedDimensionId=null;if(selectionEntries().length)clearSelection();renderAll();return;}if(inline&&e.key==='Tab'){e.preventDefault();document.execCommand?.('insertText',false,'    ');}});
+
+          [E.paperW'''
+              s2, n = re.subn(pattern, replacement, s, count=1, flags=re.S)
+              if n != 1:
+                  raise SystemExit(f'shortcut handler patch count={n}')
+              app.write_text(s2, encoding='utf-8')
+
+          test = Path('tests/v4-paper-guides-ux.spec.js')
+          t = test.read_text(encoding='utf-8')
+          if 'Thai keyboard layout' not in t:
+              pattern = r"test\('Ctrl\+D duplicates the selected object even while inspector textarea still has focus'.*?\n\}\);\n\n(?=test\('sidebar collapse controls)"
+              replacement = '''test('Ctrl+D duplicates from both English and Thai keyboard layouts while inspector textarea has focus', async ({page})=>{
+            await fresh(page);await page.click('#addItemBtn');
+            const before=(await page.evaluate(()=>window.__StickerV3Diagnostics.getProject())).placements.length;
+            await page.locator('#jobText').focus();
+            await page.keyboard.press('Control+d');
+            await page.waitForTimeout(80);
+            const afterEnglish=(await page.evaluate(()=>window.__StickerV3Diagnostics.getProject())).placements.length;
+            expect(afterEnglish).toBeGreaterThan(before);
+
+            const prevented=await page.evaluate(()=>{
+              const el=document.getElementById('jobText');
+              el.focus();
+              const ev=new KeyboardEvent('keydown',{key:'ก',code:'KeyD',ctrlKey:true,bubbles:true,cancelable:true});
+              el.dispatchEvent(ev);
+              return ev.defaultPrevented;
+            });
+            await page.waitForTimeout(80);
+            const afterThai=(await page.evaluate(()=>window.__StickerV3Diagnostics.getProject())).placements.length;
+            expect(prevented).toBe(true);
+            expect(afterThai).toBeGreaterThan(afterEnglish);
+          });
+
+          '''
+              t2, n = re.subn(pattern, replacement, t, count=1, flags=re.S)
+              if n != 1:
+                  raise SystemExit(f'shortcut regression patch count={n}')
+              test.write_text(t2, encoding='utf-8')
+          PY
+
+      - name: Rebuild standalone
+        run: node scripts/build-v3-standalone.js
+
+      - name: Syntax and model checks
+        run: |
+          node --check js/app-v3.js
+          node --check tests/v4-paper-guides-ux.spec.js
+          node tests/model-v3.test.js
+          node tests/design-ops-v3.test.js
+
+      - name: Install browser tests
+        run: |
+          npm install --no-save @playwright/test@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/shortcut-http.log 2>&1 &
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:4173/v3-preview.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/shortcut-http.log
+          exit 1
+
+      - name: Shortcut regression
+        run: npx playwright test tests/v4-paper-guides-ux.spec.js --reporter=line --workers=1
+
+      - name: Full production browser regression
+        run: npx playwright test tests/v3-browser-smoke.spec.js tests/v3-design-behavior.spec.js tests/v3-precision.spec.js tests/v3-export.spec.js tests/v3-cutready.spec.js tests/v3-persistence.spec.js tests/v3-standalone.spec.js tests/v3-ux-redesign.spec.js tests/v4-canvas-interactions.spec.js tests/v4-paper-guides-ux.spec.js tests/v5-cad-dimensions.spec.js tests/v6-simplified-workflow.spec.js --reporter=line --workers=1
+
+      - name: Standalone consistency
+        run: |
+          cp StickerLayout-V3-Standalone.html /tmp/standalone-shortcuts.html
+          node scripts/build-v3-standalone.js
+          cmp -s StickerLayout-V3-Standalone.html /tmp/standalone-shortcuts.html
+          grep -q 'function shortcutCode(e)' StickerLayout-V3-Standalone.html
+
+      - name: Commit verified changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add js/app-v3.js tests/v4-paper-guides-ux.spec.js StickerLayout-V3-Standalone.html
+          if git diff --cached --quiet; then
+            echo 'No source changes to commit'
+          else
+            git commit -m 'fix: make shortcuts keyboard-layout independent [skip ci]'
+            git push origin HEAD:v6-keyboard-layout-shortcuts
+          fi
