@@ -16,9 +16,8 @@ new_guides = "    const wg=state.project.workspace.guides;wg.x.forEach((v,i)=>s+
 s = s[:gstart] + new_guides + s[gend:]'''
 s = s[:start] + replacement + s[end:]
 
-# A line with a transparent/wide stroke still has browser-specific hit-test
-# edge cases. Use an actual 20-unit-wide transparent rectangle as the pointer
-# target, with the visible red line rendered separately above it.
+# Use an actual 20-unit rectangle as the guide pointer target. This is more
+# predictable across Chromium/Edge SVG hit testing than an invisible wide line.
 old_helper_x = '''if(axis==='x')return `<line class="user-guide-hit" data-guide-axis="x" data-guide-index="${i}" x1="${v}" y1="${-pad}" x2="${v}" y2="${paper.h+pad}"/><line class="${cls}" data-guide-axis="x" data-guide-index="${i}" x1="${v}" y1="${-pad}" x2="${v}" y2="${paper.h+pad}"/>`;return `<line class="user-guide-hit" data-guide-axis="y" data-guide-index="${i}" x1="${-pad}" y1="${v}" x2="${paper.w+pad}" y2="${v}"/><line class="${cls}" data-guide-axis="y" data-guide-index="${i}" x1="${-pad}" y1="${v}" x2="${paper.w+pad}" y2="${v}"/>`;'''
 new_helper_x = '''if(axis==='x')return `<rect class="user-guide-hit" data-guide-axis="x" data-guide-index="${i}" x="${v-10}" y="${-pad}" width="20" height="${paper.h+pad*2}"/><line class="${cls}" x1="${v}" y1="${-pad}" x2="${v}" y2="${paper.h+pad}"/>`;return `<rect class="user-guide-hit" data-guide-axis="y" data-guide-index="${i}" x="${-pad}" y="${v-10}" width="${paper.w+pad*2}" height="20"/><line class="${cls}" x1="${-pad}" y1="${v}" x2="${paper.w+pad}" y2="${v}"/>`;'''
 if old_helper_x not in s:
@@ -31,5 +30,14 @@ if old_hit not in s:
     raise SystemExit('guide hit CSS patch target not found')
 s = s.replace(old_hit, new_hit, 1)
 
+# Also make guide selection geometry-aware: if a click lands on the paper or
+# gray workspace within 12 screen pixels of a guide, select that guide. This is
+# the user-facing behavior we want and is independent of SVG hit-test quirks.
+old_workspace_patch = '''new_workspace = "E.svg.querySelectorAll('[data-workspace],[data-paper]').forEach(el=>el.addEventListener('pointerdown',e=>{if(e.target!==el)return;if(guideMeasureState().active&&el.hasAttribute('data-paper')){e.preventDefault();e.stopPropagation();chooseGuideMeasureEdge(e);return;}startMarquee(e);}));"'''
+new_workspace_patch = '''new_workspace = "E.svg.querySelectorAll('[data-workspace],[data-paper]').forEach(el=>el.addEventListener('pointerdown',e=>{if(e.target!==el)return;if(guideMeasureState().active){e.preventDefault();e.stopPropagation();const pt=svgPoint(e),sr=E.svg.getBoundingClientRect(),vb=E.svg.viewBox.baseVal,sx=sr.width/Math.max(vb.width,1),sy=sr.height/Math.max(vb.height,1),wg=ensureWorkspaceState().guides;let hit=null,best=13;wg.x.forEach((v,i)=>{const d=Math.abs(pt.x-v)*sx;if(d<best){best=d;hit={axis:'x',index:i};}});wg.y.forEach((v,i)=>{const d=Math.abs(pt.y-v)*sy;if(d<best){best=d;hit={axis:'y',index:i};}});if(hit){selectGuideForMeasure(hit.axis,hit.index);return;}if(el.hasAttribute('data-paper'))chooseGuideMeasureEdge(e);return;}startMarquee(e);}));"'''
+if old_workspace_patch not in s:
+    raise SystemExit('guide workspace fallback patch target not found')
+s = s.replace(old_workspace_patch, new_workspace_patch, 1)
+
 p.write_text(s, encoding='utf-8')
-print('Repaired guide render matching and rectangle hit targets')
+print('Repaired guide render matching, hit rectangles, and proximity fallback')
