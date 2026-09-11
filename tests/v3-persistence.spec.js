@@ -48,7 +48,8 @@ test('autosave can be explicitly recovered and project file roundtrip restores e
   expect((await page.evaluate(() => window.__StickerV3Diagnostics.getProject())).paper.w).toBe(900);
 
   await page.setInputFiles('#openProjectInput', savedPath);
-  await expect(page.locator('#paperWidth')).toHaveValue('600');
+  await expect(page.locator('#paperWidth')).toHaveValue(String(saved.paper.w));
+  await expect(page.locator('#paperHeight')).toHaveValue(String(saved.paper.h));
   after = await page.evaluate(() => window.__StickerV3Diagnostics.getProject());
   expect(after.paper.w).toBe(saved.paper.w);
   expect(after.paper.h).toBe(saved.paper.h);
