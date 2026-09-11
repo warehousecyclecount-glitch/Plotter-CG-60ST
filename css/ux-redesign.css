@@ -13,3 +13,5 @@ body{background:#f7f8fa}.topbar{height:60px;padding:0 14px;border-bottom:1px sol
 
 /* centered stage: keeps the paper centered when the SVG is smaller and makes overflow symmetric when larger */
 .canvas-viewport{display:block!important}.canvas-stage{min-width:100%;min-height:100%;width:max-content;height:max-content;display:grid;place-items:center}.canvas-stage svg{grid-area:1/1;margin:0!important}.canvas-empty-state{position:sticky;left:0;top:0;width:100%;height:100%;float:left;margin-right:-100%;z-index:8}
+
+.center-relation-btn{margin-top:7px}.guide-measure-btn.active{font-weight:900!important}

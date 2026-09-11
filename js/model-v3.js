@@ -34,7 +34,9 @@
         gap: nonNegative(options.layout?.gap, DEFAULT_LAYOUT.gap)
       },
       workspace: {
-        guides: { x: [], y: [] }
+        guides: { x: [], y: [] },
+        dimensions: [],
+        relations: []
       },
       objects: [],
       designs: [],
@@ -547,6 +549,8 @@
     project.workspace.guides ||= { x:[], y:[] };
     if (!Array.isArray(project.workspace.guides.x)) project.workspace.guides.x = [];
     if (!Array.isArray(project.workspace.guides.y)) project.workspace.guides.y = [];
+    if (!Array.isArray(project.workspace.dimensions)) project.workspace.dimensions = [];
+    if (!Array.isArray(project.workspace.relations)) project.workspace.relations = [];
     (project.objects || []).forEach(o => { o.locked = o.locked === true; o.aspectLocked = o.aspectLocked === true; });
     (project.designs || []).forEach(d => { d.locked = d.locked === true; });
     (project.placements || []).forEach(p => { p.locked = p.locked === true; });
