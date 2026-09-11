@@ -78,15 +78,15 @@ jobs:
           grep -q 'paperAutoFit:true' StickerLayout-V3-Standalone.html
           grep -q 'id="guideMeasureBtn"' StickerLayout-V3-Standalone.html
 
-      - name: Commit verified changes
+      - name: Commit verified source changes
         run: |
           rm -rf node_modules test-results
           rm -f package-lock.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html v3-preview.html js/model-v3.js js/app-v3.js css/ux-redesign.css css/canvas-v4.css tests/model-v3.test.js tests/v4-paper-guides-ux.spec.js .github/workflows/v3-ci.yml StickerLayout-V3-Standalone.html
+          git add index.html v3-preview.html js/model-v3.js js/app-v3.js css/ux-redesign.css css/canvas-v4.css tests/model-v3.test.js tests/v4-paper-guides-ux.spec.js StickerLayout-V3-Standalone.html
           if git diff --cached --quiet; then
-            echo 'No requested changes to commit'
+            echo 'No requested source changes to commit'
             exit 1
           fi
           git commit -m "feat: improve paper workspace guides and shortcuts [skip ci]"
