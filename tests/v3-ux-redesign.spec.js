@@ -13,6 +13,13 @@ test('redesigned workspace starts empty, centered and beginner friendly', async 
   await expect(page.locator('#exportMenuBtn')).toBeVisible();
   await expect(page.locator('#newProjectBtn')).toBeHidden();
 
+  await page.waitForFunction(() => {
+    const vp = document.querySelector('#canvasViewport')?.getBoundingClientRect();
+    const paper = document.querySelector('.paper')?.getBoundingClientRect();
+    if (!vp || !paper) return false;
+    return Math.abs((paper.left + paper.width/2) - (vp.left + vp.width/2)) < 3
+      && Math.abs((paper.top + paper.height/2) - (vp.top + vp.height/2)) < 3;
+  });
   const vp = await page.locator('#canvasViewport').boundingBox();
   const paper = await page.locator('.paper').boundingBox();
   expect(vp && paper).toBeTruthy();
