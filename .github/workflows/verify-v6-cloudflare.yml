@@ -1,0 +1,33 @@
+name: Verify V6 Cloudflare Deployment
+
+on:
+  push:
+    branches:
+      - verify-v6-cloudflare
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check production markers
+        run: |
+          set -euo pipefail
+          base='https://plotter-cg-60st.pages.dev'
+          for i in {1..20}; do
+            if curl -fsSL --max-time 20 "$base/" -o /tmp/index.html && \
+               curl -fsSL --max-time 20 "$base/js/app-v3.js" -o /tmp/app.js; then
+              if grep -q 'id="newProjectBtn"' /tmp/index.html && \
+                 grep -q 'id="openProjectBtn"' /tmp/index.html && \
+                 grep -q 'id="preflightBtn"' /tmp/index.html && \
+                 grep -q 'ส่งไปตัด' /tmp/index.html && \
+                 grep -q 'simpleWorkflow:true' /tmp/app.js && \
+                 ! grep -q 'id="exportMenuBtn"' /tmp/index.html; then
+                echo 'V6 Cloudflare production verified'
+                exit 0
+              fi
+            fi
+            echo "Waiting for Cloudflare production deploy ($i/20)..."
+            sleep 5
+          done
+          echo 'V6 markers not found on Cloudflare production within verification window'
+          exit 1
