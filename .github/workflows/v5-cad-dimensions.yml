@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/v5-cad-dimensions.yml
       - scripts/apply-v5-cad-dimensions.py
+      - scripts/fix-v5-generated-syntax.py
 
 permissions:
   contents: write
@@ -26,6 +27,9 @@ jobs:
 
       - name: Apply V5 CAD changes
         run: python3 scripts/apply-v5-cad-dimensions.py
+
+      - name: Fix generated syntax
+        run: python3 scripts/fix-v5-generated-syntax.py
 
       - name: Rebuild standalone
         run: node scripts/build-v3-standalone.js
