@@ -7,7 +7,7 @@
   'use strict';
 
   const SCHEMA_VERSION = 3;
-  const DEFAULT_PAPER = Object.freeze({ w: 600, h: 300 });
+  const DEFAULT_PAPER = Object.freeze({ w: 680, h: 520 });
   const DEFAULT_LAYOUT = Object.freeze({ margin: 10, gap: 5 });
 
   const deepClone = value => JSON.parse(JSON.stringify(value));

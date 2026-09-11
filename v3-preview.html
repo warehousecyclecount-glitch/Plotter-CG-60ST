@@ -22,9 +22,9 @@
       <div class="paper-control" aria-label="ขนาดกระดาษ">
         <span class="paper-control-label">กระดาษ</span>
         <div class="paper-size-inline">
-          <input id="paperWidth" type="number" min="1" step="0.1" value="600" aria-label="ความกว้างกระดาษ">
+          <input id="paperWidth" type="number" min="1" step="0.1" value="680" aria-label="ความกว้างกระดาษ">
           <span>×</span>
-          <input id="paperHeight" type="number" min="1" step="0.1" value="300" aria-label="ความยาวกระดาษ">
+          <input id="paperHeight" type="number" min="1" step="0.1" value="520" aria-label="ความยาวกระดาษ">
           <b class="unit-inline">mm</b>
         </div>
         <div class="unit-switch" aria-label="หน่วยวัด">
@@ -167,7 +167,7 @@
           </section>
         </div>
       </aside>
-      <div id="leftPanelResizer" class="panel-resizer panel-resizer-left" role="separator" aria-label="ปรับความกว้างแถบซ้าย"></div>
+      <div id="leftPanelResizer" class="panel-resizer panel-resizer-left" role="separator" aria-label="ปรับความกว้างแถบซ้าย"><button id="leftPanelCollapseBtn" class="panel-collapse-btn" type="button" title="ย่อแถบซ้าย" aria-label="ย่อแถบซ้าย">◀</button></div>
 
       <section class="canvas-column">
         <div class="edit-toolbar" aria-label="เครื่องมือแก้ไข">
@@ -200,6 +200,7 @@
             </div>
             <button id="fitSelectionBtn" type="button" title="พอดีสิ่งที่เลือก (Shift+2)">พอดีที่เลือก</button>
             <button id="resetViewBtn" type="button" title="พอดีกระดาษ (Shift+1)">พอดีกระดาษ</button>
+            <button id="guideMeasureBtn" class="guide-measure-btn" type="button" title="ตั้งระยะเส้นไกด์จากขอบกระดาษ">📏 ระยะไกด์</button>
             <button id="shortcutHelpBtn" class="shortcut-help-btn" type="button" title="ดูคีย์ลัด">? คีย์ลัด</button>
           </div>
         </div>
@@ -228,6 +229,15 @@
             <button type="button" data-context-action="delete" class="danger">⌫ <span>ลบ</span><kbd>Del</kbd></button>
           </div>
         </div>
+          <div id="guideMeasurePanel" class="guide-measure-panel hidden" role="dialog" aria-live="polite">
+            <div class="guide-measure-title"><strong>📏 ตั้งระยะไกด์</strong><button id="guideMeasureCancelBtn" type="button" aria-label="ปิด">×</button></div>
+            <div id="guideMeasureHint" class="guide-measure-hint">1. คลิกเส้นสีแดงที่ต้องการตั้งระยะ</div>
+            <div id="guideDistanceRow" class="guide-distance-row hidden">
+              <span id="guideMeasureReference">จากขอบกระดาษ</span>
+              <div class="guide-distance-input"><input id="guideDistanceInput" type="number" min="0" step="0.1" inputmode="decimal"><span data-unit-label>mm</span></div>
+              <button id="guideMeasureApplyBtn" type="button">ตั้งระยะ</button>
+            </div>
+          </div>
         <div class="canvas-footer">
           <span>ลากชิ้นงานออกนอกกระดาษได้เพื่อพักไว้ก่อนจัดวาง</span>
           <span>ลากจุดมุมเพื่อปรับขนาด · ลากจุดสีม่วงเพื่อหมุน · กด Alt ค้างระหว่างลากเพื่อไม่ใช้ Snap</span>
@@ -235,7 +245,7 @@
         </div>
       </section>
 
-      <div id="rightPanelResizer" class="panel-resizer panel-resizer-right" role="separator" aria-label="ปรับความกว้างแถบขวา"></div>
+      <div id="rightPanelResizer" class="panel-resizer panel-resizer-right" role="separator" aria-label="ปรับความกว้างแถบขวา"><button id="rightPanelCollapseBtn" class="panel-collapse-btn" type="button" title="ย่อแถบขวา" aria-label="ย่อแถบขวา">▶</button></div>
       <aside class="right-panel panel">
         <div class="right-title-row"><h2>จัดการงาน</h2><span class="panel-grip">⋮⋮</span></div>
         <div class="tabs">

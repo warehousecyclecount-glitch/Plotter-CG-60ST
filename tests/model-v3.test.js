@@ -28,7 +28,7 @@ const legacy = {
 test('schema version and project defaults', () => {
   const p = M.createProject();
   assert.equal(p.schemaVersion, 3);
-  assert.deepEqual(p.paper, { w:600, h:300 });
+  assert.deepEqual(p.paper, { w:680, h:520 });
 });
 
 test('legacy migration preserves paper and layout', () => {
