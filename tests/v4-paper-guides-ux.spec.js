@@ -40,14 +40,26 @@ test('new text and frame start inside paper even if mouse was outside it', async
   }
 });
 
-test('Ctrl+D duplicates the selected object even while inspector textarea still has focus', async ({page})=>{
+test('Ctrl+D duplicates from both English and Thai keyboard layouts while inspector textarea has focus', async ({page})=>{
   await fresh(page);await page.click('#addItemBtn');
   const before=(await page.evaluate(()=>window.__StickerV3Diagnostics.getProject())).placements.length;
   await page.locator('#jobText').focus();
   await page.keyboard.press('Control+d');
   await page.waitForTimeout(80);
-  const after=(await page.evaluate(()=>window.__StickerV3Diagnostics.getProject())).placements.length;
-  expect(after).toBeGreaterThan(before);
+  const afterEnglish=(await page.evaluate(()=>window.__StickerV3Diagnostics.getProject())).placements.length;
+  expect(afterEnglish).toBeGreaterThan(before);
+
+  const prevented=await page.evaluate(()=>{
+    const el=document.getElementById('jobText');
+    el.focus();
+    const ev=new KeyboardEvent('keydown',{key:'ก',code:'KeyD',ctrlKey:true,bubbles:true,cancelable:true});
+    el.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  });
+  await page.waitForTimeout(80);
+  const afterThai=(await page.evaluate(()=>window.__StickerV3Diagnostics.getProject())).placements.length;
+  expect(prevented).toBe(true);
+  expect(afterThai).toBeGreaterThan(afterEnglish);
 });
 
 test('sidebar collapse controls are visible, explicit and reversible', async ({page})=>{
