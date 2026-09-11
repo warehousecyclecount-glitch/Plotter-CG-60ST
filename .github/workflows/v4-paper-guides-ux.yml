@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/v4-paper-guides-ux.yml
       - scripts/apply-v4-paper-guides-ux.py
+      - scripts/repair-v4-paper-patch.py
 
 permissions:
   contents: write
@@ -23,6 +24,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+
+      - name: Repair patch matcher
+        run: python3 scripts/repair-v4-paper-patch.py
 
       - name: Apply requested UX changes
         run: python3 scripts/apply-v4-paper-guides-ux.py
